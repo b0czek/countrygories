@@ -1,0 +1,34 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'message.freezed.dart';
+part 'message.g.dart';
+
+enum MessageType {
+  joinGame,
+  leaveGame,
+  gameStarted,
+  roundStarted,
+  letterSelected,
+  submitAnswers,
+  roundEnded,
+  scoringResults,
+  gameEnded,
+  playerReady,
+  gameLobbyData,
+  error,
+  ping,
+  pong,
+}
+
+@freezed
+class Message with _$Message {
+  const factory Message({
+    required MessageType type,
+    required Map<String, dynamic> payload,
+    required String senderId,
+    required DateTime timestamp,
+  }) = _Message;
+
+  factory Message.fromJson(Map<String, dynamic> json) =>
+      _$MessageFromJson(json);
+}
