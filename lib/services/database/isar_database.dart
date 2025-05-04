@@ -151,4 +151,21 @@ class IsarDatabaseService {
 
     return count > 0;
   }
+
+  Future<List<AnswerEntry>> getUserAddedAnswers() async {
+    final isar = await db;
+    return isar.answerEntrys
+        .filter()
+        .builtInEqualTo(false)
+        .sortByCategoryName()
+        .thenByLetter()
+        .findAll();
+  }
+
+  Future<void> deleteAnswer(int id) async {
+    final isar = await db;
+    await isar.writeTxn(() async {
+      await isar.answerEntrys.delete(id);
+    });
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:countrygories/providers/database_providers.dart';
 import 'package:countrygories/widgets/common/custom_button.dart';
+import 'package:countrygories/models/answer_entry.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -14,7 +15,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _categoryNameController = TextEditingController();
   final _answerController = TextEditingController();
-  final _letterController = TextEditingController();
   String? _selectedCategory;
   bool _isAddingCategory = false;
   bool _isAddingAnswer = false;
@@ -23,7 +23,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void dispose() {
     _categoryNameController.dispose();
     _answerController.dispose();
-    _letterController.dispose();
     super.dispose();
   }
 
@@ -63,8 +62,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final category = _selectedCategory;
-    final letter = _letterController.text.trim().toUpperCase();
     final answer = _answerController.text.trim();
+    final letter = answer.isNotEmpty ? answer[0].toUpperCase() : '';
 
     if (category == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,7 +89,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       setState(() {
         _isAddingAnswer = false;
         _answerController.clear();
-        _letterController.clear();
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -148,6 +146,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     });
                   },
                 ),
+              const SizedBox(height: 32),
+              const Text(
+                'Odpowiedzi niestandardowe',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              _buildCustomAnswersList(),
             ],
           ),
         ),
@@ -283,25 +288,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         const SizedBox(height: 16),
         TextFormField(
-          controller: _letterController,
-          decoration: const InputDecoration(
-            labelText: 'Litera',
-            border: OutlineInputBorder(),
-          ),
-          maxLength: 1,
-          textCapitalization: TextCapitalization.characters,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Proszę podać literę';
-            }
-            if (value.length != 1) {
-              return 'Proszę podać dokładnie jedną literę';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
           controller: _answerController,
           decoration: const InputDecoration(
             labelText: 'Odpowiedź',
@@ -310,12 +296,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Proszę podać odpowiedź';
-            }
-            if (_letterController.text.isNotEmpty &&
-                !value.toUpperCase().startsWith(
-                  _letterController.text.toUpperCase(),
-                )) {
-              return 'Odpowiedź musi zaczynać się na literę ${_letterController.text.toUpperCase()}';
             }
             return null;
           },
@@ -329,7 +309,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 setState(() {
                   _isAddingAnswer = false;
                   _answerController.clear();
-                  _letterController.clear();
                 });
               },
               child: const Text('Anuluj'),
@@ -342,6 +321,92 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildCustomAnswersList() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final customAnswersAsync = ref.watch(customAnswersProvider);
+
+        return customAnswersAsync.when(
+          data: (answers) {
+            if (answers.isEmpty) {
+              return const Center(
+                child: Text(
+                  'Brak niestandardowych odpowiedzi',
+                  style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+                ),
+              );
+            }
+
+            return Expanded(
+              child: ListView.builder(
+                itemCount: answers.length,
+                itemBuilder: (context, index) {
+                  final answer = answers[index];
+                  return ListTile(
+                    title: Text(answer.answer),
+                    subtitle: Text(
+                      'Kategoria: ${answer.categoryName}, Litera: ${answer.letter}',
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () async {
+                        final shouldDelete = await showDialog<bool>(
+                          context: context,
+                          builder:
+                              (context) => AlertDialog(
+                                title: const Text('Potwierdzenie'),
+                                content: const Text(
+                                  'Czy na pewno chcesz usunąć tę odpowiedź?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(context).pop(false),
+                                    child: const Text('Anuluj'),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(context).pop(true),
+                                    child: const Text('Usuń'),
+                                  ),
+                                ],
+                              ),
+                        );
+
+                        if (shouldDelete == true) {
+                          try {
+                            await ref.read(deleteAnswerProvider(answer.id));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Odpowiedź usunięta pomyślnie'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Błąd usuwania odpowiedzi: ${e.toString()}',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Text('Error: $error'),
+        );
+      },
     );
   }
 }
