@@ -3,12 +3,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:countrygories/models/category.dart';
 import 'package:countrygories/models/answer_entry.dart';
 import 'package:countrygories/config/app_config.dart';
-
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:string_similarity/string_similarity.dart';
 
 
 class IsarDatabaseService {
@@ -204,16 +204,54 @@ class IsarDatabaseService {
     String letter,
     String answer,
   ) async {
+    if (answer.isEmpty || answer[0] != letter) {
+      return false;
+    }
     final isar = await db;
-    final count =
+    final possibleAnswersList = 
         await isar.answerEntrys
             .filter()
             .categoryNameEqualTo(categoryName)
-            .letterEqualTo(letter.toUpperCase())
-            .answerEqualTo(answer.toLowerCase())
-            .count();
+            .letterEqualTo(letter)
+            .findAll()
+            .then((entries) => entries.map((entry) => entry.answer).toList());
+    if (possibleAnswersList.contains(answer.toLowerCase())) {
+      return true;
+    }
+    final matched = normalizePolishLetters(answer)
+                      .toLowerCase()
+                      .bestMatch(possibleAnswersList.map((answer) => normalizePolishLetters(answer)).toList())
+                      .ratings
+                      .reduce((a, b) => (a.rating ?? 0.0) > (b.rating ?? 0.0) ? a : b);
+    print("Best match: ${matched.target} with rating: ${matched.rating}");
+    return (matched.rating ?? 0.0) >= AppConfig.minAnswerLevensteinMatchValue;
+  }
 
-    return count > 0;
+  String normalizePolishLetters(String word) {
+    const Map<String, String> polishToAscii = {
+      'ą': 'a',
+      'ć': 'c',
+      'ę': 'e',
+      'ł': 'l',
+      'ń': 'n',
+      'ó': 'o',
+      'ś': 's',
+      'ź': 'z',
+      'ż': 'z',
+      'Ą': 'A',
+      'Ć': 'C',
+      'Ę': 'E',
+      'Ł': 'L',
+      'Ń': 'N',
+      'Ó': 'O',
+      'Ś': 'S',
+      'Ź': 'Z',
+      'Ż': 'Z',
+    };
+
+    return word.split('').map((char) {
+      return polishToAscii[char] ?? char;
+    }).join();
   }
 
   Future<List<AnswerEntry>> getUserAddedAnswers() async {

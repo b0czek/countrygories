@@ -14,4 +14,6 @@ class AppConfig {
   ];
 
   static const List<String> defaultExcludedLetters = ["Q", "V", "X", "Y"];
+
+  static const double minAnswerLevensteinMatchValue = 0.7;
 }

@@ -52,6 +52,7 @@ dependencies:
   json_annotation: ^4.9.0
   shared_preferences: ^2.5.3
   crypto: ^3.0.6
+  string_similarity: ^2.1.1
 
 dev_dependencies:
   flutter_test:
