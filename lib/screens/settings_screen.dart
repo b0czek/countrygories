@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:countrygories/providers/database_providers.dart';
 import 'package:countrygories/widgets/common/custom_button.dart';
-import 'package:countrygories/models/answer_entry.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});

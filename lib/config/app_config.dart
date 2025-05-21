@@ -10,7 +10,6 @@ class AppConfig {
     "Zwierzę",
     "Roślina",
     "Imię",
-    "Rzecz/Przedmiot",
     "Zawód",
   ];
 

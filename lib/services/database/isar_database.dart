@@ -4,6 +4,13 @@ import 'package:countrygories/models/category.dart';
 import 'package:countrygories/models/answer_entry.dart';
 import 'package:countrygories/config/app_config.dart';
 
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert';
+import 'dart:io';
+import 'package:crypto/crypto.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+
 class IsarDatabaseService {
   late Future<Isar> db;
 
@@ -37,7 +44,64 @@ class IsarDatabaseService {
         await isar.categorys.putAll(categories);
       });
 
-      await addSampleAnswers(isar);
+      //await addSampleAnswers(isar);
+    }
+    await updateDefaultAnswersFromJsonIfNeeded();
+  }
+
+  Future<String> calculateFileHash(File file) async {
+    final bytes = await file.readAsBytes();
+    return sha256.convert(bytes).toString();
+  }
+
+  Future<void> updateDefaultAnswersFromJsonIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isar = await db;
+
+    final assetFiles = {
+      'countries.json': 'Państwo',
+      'cities.json': 'Miasto',
+      'animals.json': 'Zwierzę',
+      'plants.json': 'Roślina',
+      'names.json': 'Imię',
+      'jobs.json': 'Zawód',
+    };
+
+    final Set<String> shouldUpdate = {};
+    final updatedEntries = <AnswerEntry>[];
+
+    for (final entry in assetFiles.entries) {
+      final assetPath = 'assets/default_categories/${entry.key}';
+      final categoryName = entry.value;
+
+      final jsonString = await rootBundle.loadString(assetPath);
+      final hash = sha256.convert(utf8.encode(jsonString)).toString();
+
+      if (prefs.getString('hash_${entry.key}') != hash) {
+        shouldUpdate.add(categoryName);
+        prefs.setString('hash_${entry.key}', hash);
+
+        final Map<String, dynamic> content = jsonDecode(jsonString);
+
+        content.forEach((letter, answersList) {
+          for (final answer in (answersList as List)) {
+            updatedEntries.add(AnswerEntry()
+              ..categoryName = categoryName
+              ..letter = letter.toUpperCase()
+              ..answer = answer
+              ..builtIn = true);
+          }
+        });
+      }
+    }
+
+    if (shouldUpdate.isNotEmpty) {
+      await isar.writeTxn(() async {
+        for (final category in shouldUpdate) {
+          await isar.answerEntrys.filter().categoryNameEqualTo(category).builtInEqualTo(true).deleteAll();
+        }
+        await isar.answerEntrys.putAll(updatedEntries);
+      });
     }
   }
 
@@ -146,7 +210,7 @@ class IsarDatabaseService {
             .filter()
             .categoryNameEqualTo(categoryName)
             .letterEqualTo(letter.toUpperCase())
-            .answerEqualTo(answer)
+            .answerEqualTo(answer.toLowerCase())
             .count();
 
     return count > 0;
