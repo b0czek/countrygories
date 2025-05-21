@@ -1,0 +1,223 @@
+{
+    "p": [
+        "pr-owiec",
+        "pedagog",
+        "pediatra",
+        "piekarz",
+        "pielęgniarka",
+        "pilot",
+        "pisarz",
+        "planista",
+        "plastyk",
+        "plastyki",
+        "policyjant",
+        "polityk",
+        "pomoc",
+        "poradca",
+        "poradnik",
+        "poziomiarz",
+        "położna",
+        "pośrednik",
+        "praktykant",
+        "prezenter",
+        "projektant",
+        "przewodnik",
+        "psycholog",
+        "psychoterapeuta"
+    ],
+    "a": [
+        "administrator",
+        "adwokat",
+        "aktor",
+        "aktorka",
+        "aktuariusz",
+        "analityk",
+        "anestezjolog",
+        "architekt",
+        "artysta",
+        "astronauta",
+        "astronom",
+        "asystent",
+        "audytor"
+    ],
+    "b": [
+        "badacz",
+        "bankier",
+        "bibliotekarz",
+        "bibliotekoznawca",
+        "biolog",
+        "bloger",
+        "broker",
+        "brygadzista",
+        "budowlaniec"
+    ],
+    "c": [
+        "celnik",
+        "chemik",
+        "chirurg",
+        "copywriter",
+        "cukiernik"
+    ],
+    "d": [
+        "dendrolog",
+        "dentysta",
+        "dermatolog",
+        "dietetyk",
+        "doktorant",
+        "dokumentalista",
+        "doradca",
+        "drzewiarz",
+        "dyrektor",
+        "dyrgent",
+        "dziennikarz"
+    ],
+    "e": [
+        "e-commerce",
+        "e-sportowiec",
+        "ekonomista",
+        "ekspedient",
+        "elektromechanik",
+        "elektronik",
+        "elektryk",
+        "endokrynolog"
+    ],
+    "f": [
+        "farmaceuta",
+        "filmowiec",
+        "fizjoterapeuta",
+        "fizyk",
+        "fluorysta",
+        "fotograf",
+        "franczyzobiorca",
+        "fryzjer"
+    ],
+    "g": [
+        "garncarz",
+        "gastrolog",
+        "geodeta",
+        "ginekolog",
+        "grafik",
+        "grawer",
+        "górnik"
+    ],
+    "h": [
+        "handlowiec",
+        "hematolog",
+        "hydraulik"
+    ],
+    "i": [
+        "influencer",
+        "informatyk",
+        "inspektor",
+        "instruktor",
+        "inżynier"
+    ],
+    "j": [
+        "jogger",
+        "jurysta"
+    ],
+    "k": [
+        "kardiolog",
+        "kelner",
+        "kierowca",
+        "kierownik",
+        "kontroler",
+        "koordynator",
+        "kosmetolog",
+        "kosmetyczka",
+        "ksiądz",
+        "księgowy",
+        "kurator",
+        "kurier"
+    ],
+    "l": [
+        "laryngolog",
+        "lekarz",
+        "listonosz",
+        "logistyk"
+    ],
+    "m": [
+        "malarz",
+        "manager",
+        "mechanik",
+        "menedżer",
+        "modelka",
+        "muzyk"
+    ],
+    "n": [
+        "nauczyciel",
+        "nefrolog",
+        "neurolog",
+        "notariusz",
+        "nurek"
+    ],
+    "o": [
+        "ogrodnik",
+        "onkolog",
+        "operator",
+        "opiekun",
+        "opiekunka",
+        "organizator",
+        "ortopeda"
+    ],
+    "r": [
+        "radca",
+        "ratownik",
+        "recepcjonista",
+        "recepcjonistka",
+        "redaktor",
+        "rekruter",
+        "reżyser",
+        "rolnik",
+        "rybak"
+    ],
+    "s": [
+        "salowy",
+        "samolotowy",
+        "sekretarka",
+        "serwisant",
+        "social",
+        "specjalista",
+        "sprzedawca",
+        "sprzątaczka",
+        "steward",
+        "stewardessa",
+        "stolarz",
+        "stomatolog",
+        "strażak",
+        "strażnik",
+        "szewc",
+        "szklarz",
+        "szkoleniowiec"
+    ],
+    "t": [
+        "taksówkarz",
+        "technik",
+        "telemarketer",
+        "terapeuta",
+        "tester",
+        "trener",
+        "tłumacz"
+    ],
+    "u": [
+        "urbanista",
+        "urolog",
+        "urzędnik",
+        "user"
+    ],
+    "w": [
+        "web",
+        "weterynarz",
+        "wizażysta",
+        "wizażystka",
+        "wokalista",
+        "wulkanizator"
+    ],
+    "y": [
+        "youtuber"
+    ],
+    "z": [
+        "zbrojarz",
+        "zoolog"
+    ]
+}

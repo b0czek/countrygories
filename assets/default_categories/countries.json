@@ -1,0 +1,241 @@
+{
+    "a": [
+        "afganistan",
+        "albania",
+        "algieria",
+        "andora",
+        "angola",
+        "antigua i barbuda",
+        "arabia saudyjska",
+        "argentyna",
+        "armenia",
+        "australia",
+        "austria",
+        "azerbejdżan"
+    ],
+    "b": [
+        "bahamy",
+        "bahrajn",
+        "bangladesz",
+        "barbados",
+        "belgia",
+        "belize",
+        "benin",
+        "bhutan",
+        "białoruś",
+        "boliwia",
+        "bośnia i hercegowina",
+        "botswana",
+        "brazylia",
+        "brunei",
+        "bułgaria",
+        "burkina faso",
+        "burundi"
+    ],
+    "c": [
+        "chile",
+        "chiny",
+        "chorwacja",
+        "cypr",
+        "czad",
+        "czarnogóra",
+        "czechy"
+    ],
+    "d": [
+        "dania",
+        "demokratyczna republika konga",
+        "dominika",
+        "dominikana",
+        "dżibuti"
+    ],
+    "e": [
+        "egipt",
+        "ekwador",
+        "erytrea",
+        "estonia",
+        "eswatini",
+        "etiopia"
+    ],
+    "f": [
+        "fidżi",
+        "filipiny",
+        "finlandia",
+        "francja"
+    ],
+    "g": [
+        "gabon",
+        "gambia",
+        "ghana",
+        "grecja",
+        "grenada",
+        "gruzja",
+        "gujana",
+        "gwatemala",
+        "gwinea",
+        "gwinea bissau",
+        "gwinea równikowa"
+    ],
+    "h": [
+        "haiti",
+        "hiszpania",
+        "holandia",
+        "honduras"
+    ],
+    "i": [
+        "indie",
+        "indonezja",
+        "irak",
+        "iran",
+        "irlandia",
+        "islandia",
+        "izrael"
+    ],
+    "j": [
+        "jamajka",
+        "japonia",
+        "jemen",
+        "jordania"
+    ],
+    "k": [
+        "kambodża",
+        "kamerun",
+        "kanada",
+        "katar",
+        "kazachstan",
+        "kenia",
+        "kirgistan",
+        "kiribati",
+        "kolumbia",
+        "komory",
+        "kongo",
+        "korea południowa",
+        "korea północna",
+        "kostaryka",
+        "kuba",
+        "kuwejt"
+    ],
+    "l": [
+        "laos",
+        "lesotho",
+        "liban",
+        "liberia",
+        "libia",
+        "liechtenstein",
+        "litwa",
+        "luksemburg"
+    ],
+    "m": [
+        "macedonia północna",
+        "madagaskar",
+        "malawi",
+        "malediwy",
+        "malezja",
+        "mali",
+        "malta",
+        "maroko",
+        "mauretania",
+        "mauritius",
+        "meksyk",
+        "mikronezja",
+        "mjanma",
+        "mołdawia",
+        "monako",
+        "mongolia",
+        "mozambik"
+    ],
+    "n": [
+        "namibia",
+        "nauru",
+        "nepal",
+        "niemcy",
+        "niger",
+        "nigeria",
+        "nikaragua",
+        "norwegia",
+        "nowa zelandia"
+    ],
+    "o": [
+        "oman"
+    ],
+    "p": [
+        "pakistan",
+        "palau",
+        "panama",
+        "papua-nowa gwinea",
+        "paragwaj",
+        "peru",
+        "polska",
+        "południowa afryka",
+        "portugalia"
+    ],
+    "r": [
+        "republika środkowoafrykańska",
+        "republika zielonego przylądka",
+        "rosja",
+        "rumunia",
+        "rwanda"
+    ],
+    "s": [
+        "saint kitts i nevis",
+        "saint lucia",
+        "saint vincent i grenadyny",
+        "salwador",
+        "samoa",
+        "san marino",
+        "senegal",
+        "serbia",
+        "seszele",
+        "sierra leone",
+        "singapur",
+        "słowacja",
+        "słowenia",
+        "somalia",
+        "sri lanka",
+        "stany zjednoczone",
+        "sudan",
+        "sudan południowy",
+        "surinam",
+        "syria",
+        "szwajcaria",
+        "szwecja"
+    ],
+    "t": [
+        "tadżykistan",
+        "tajlandia",
+        "tanzania",
+        "timor wschodni",
+        "togo",
+        "tonga",
+        "trynidad i tobago",
+        "tunezja",
+        "turcja",
+        "turkmenistan",
+        "tuvalu"
+    ],
+    "u": [
+        "uganda",
+        "ukraina",
+        "urugwaj",
+        "uzbekistan"
+    ],
+    "v": [
+        "vanuatu"
+    ],
+    "w": [
+        "watykan",
+        "wenezuela",
+        "węgry",
+        "wielka brytania",
+        "wietnam",
+        "włochy",
+        "wybrzeże kości słoniowej",
+        "wyspy marshalla",
+        "wyspy salomona",
+        "wyspy świętego tomasza i książęca"
+    ],
+    "z": [
+        "zambia",
+        "zimbabwe",
+        "zjednoczone emiraty arabskie"
+    ]
+}
