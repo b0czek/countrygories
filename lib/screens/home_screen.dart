@@ -17,48 +17,66 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(AppConfig.appName), centerTitle: true),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Witaj w grze Państwa-Miasta!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 40),
-            CustomButton(
-              text: 'Hostuj grę',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const HostGameScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            CustomButton(
-              text: 'Dołącz do gry',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const JoinGameScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            CustomButton(
-              text: 'Ustawienia',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
+      body: Container(
+        constraints: const BoxConstraints.expand(),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+              Theme.of(context).colorScheme.surfaceContainerLowest,          
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/images/logo.png',
+                height: 240,
+              ),
+              const SizedBox(height: 32),
+              // const Text(
+              //   'Witaj w grze Państwa-Miasta!',
+              //   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              // ),
+              const SizedBox(height: 40),
+              CustomButton(
+                text: 'Hostuj grę',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const HostGameScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              CustomButton(
+                text: 'Dołącz do gry',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const JoinGameScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              CustomButton(
+                text: 'Ustawienia',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

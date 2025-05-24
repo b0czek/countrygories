@@ -37,7 +37,19 @@ class ResultsScreen extends ConsumerWidget {
         title: const Text('Wyniki końcowe'),
         automaticallyImplyLeading: false,
       ),
-      body: Padding(
+      body: Container(
+        constraints: const BoxConstraints.expand(),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+              Theme.of(context).colorScheme.surfaceContainerLowest,          
+            ],
+          ),
+        ),
+        child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -102,6 +114,7 @@ class ResultsScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

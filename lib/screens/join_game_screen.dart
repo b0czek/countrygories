@@ -66,6 +66,7 @@ class _JoinGameScreenState extends ConsumerState<JoinGameScreen> {
       clientService.onGameLobbyData.listen((game) {
         print('Game lobby data received: ${game.id}');
         ref.read(gameProvider.notifier).updateGameState(game);
+        ref.read(isHostProvider.notifier).state = false;
 
         // Navigate to the lobby screen once we have the game data
         if (mounted && _isLoading) {
@@ -110,13 +111,26 @@ class _JoinGameScreenState extends ConsumerState<JoinGameScreen> {
         _isLoading = false;
       });
     }
+
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Dołącz do gry')),
-      body: SingleChildScrollView(
+      body: Container(
+        constraints: const BoxConstraints.expand(),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+              Theme.of(context).colorScheme.surfaceContainerLowest,          
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
@@ -256,6 +270,7 @@ class _JoinGameScreenState extends ConsumerState<JoinGameScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

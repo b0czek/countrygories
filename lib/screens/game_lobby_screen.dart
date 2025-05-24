@@ -1,3 +1,4 @@
+import 'package:countrygories/services/network/client_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:countrygories/models/game.dart';
@@ -5,6 +6,7 @@ import 'package:countrygories/models/message.dart';
 import 'package:countrygories/providers/game_providers.dart';
 import 'package:countrygories/providers/network_providers.dart';
 import 'package:countrygories/screens/game_play_screen.dart';
+import 'package:countrygories/screens/home_screen.dart';
 import 'package:countrygories/widgets/common/custom_button.dart';
 import 'package:countrygories/widgets/game/player_list.dart';
 
@@ -167,6 +169,34 @@ class _GameLobbyScreenState extends ConsumerState<GameLobbyScreen> {
     }
   }
 
+Future<void> _leave() async {
+  final isHost = ref.read(isHostProvider);
+  if (isHost) {
+    //TODO kill server and throw everyone out
+  }
+
+  final currentPlayer = ref.read(currentPlayerProvider);
+  if (currentPlayer != null) {
+    final clientService = ref.read(
+      clientProvider({
+        'ip': currentPlayer.ipAddress,
+        'port': currentPlayer.port,
+      }),
+    );
+    try {
+      await clientService.disconnectFromServer();
+    } catch (e) {
+      // Możesz dodać logowanie lub snackbar z błędem
+    }
+  }
+
+  if (mounted) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
+    );
+  }
+}
+
   void _toggleReady() {
     final currentPlayer = ref.read(currentPlayerProvider);
     if (currentPlayer == null) return;
@@ -262,70 +292,108 @@ class _GameLobbyScreenState extends ConsumerState<GameLobbyScreen> {
         title: const Text('Lobby gry'),
         automaticallyImplyLeading: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Kod gry: ${game.id.substring(0, 6).toUpperCase()}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            if (isHost)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Adres IP: ${ref.read(serverProvider)?.serverAddress ?? "N/A"}',
-                  style: const TextStyle(fontSize: 16),
+      body: Container(
+        constraints: const BoxConstraints.expand(),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+              Theme.of(context).colorScheme.surfaceContainerLowest,
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Kod gry: ${game.id.substring(0, 6).toUpperCase()}',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              // if (isHost)
+              //   Padding(
+              //     padding: const EdgeInsets.only(top: 8.0),
+              //     child: Text(
+              //       'Adres IP: ${ref.read(serverProvider)?.serverAddress ?? "N/A"}',
+              //       style: const TextStyle(fontSize: 16),
+              //     ),
+              //   ),
+              if (isHost)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final localIpAsync = ref.watch(localIpProvider);
+
+                      return localIpAsync.when(
+                        data: (ip) => Text(
+                          'Adres IP: $ip',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        loading: () => const Text('Pobieranie adresu IP...'),
+                        error: (err, _) => Text('Błąd IP: $err'),
+                      );
+                    },
+                  ),
+                ),
+
+              const SizedBox(height: 24),
+              const Text(
+                'Gracze:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: PlayerList(
+                  players: game.players,
+                  currentPlayerId: currentPlayer.id,
                 ),
               ),
-            const SizedBox(height: 24),
-            const Text(
-              'Gracze:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: PlayerList(
-                players: game.players,
-                currentPlayerId: currentPlayer.id,
+              const SizedBox(height: 16),
+              const Text(
+                'Kategorie:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Kategorie:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8.0,
-              runSpacing: 4.0,
-              children:
-                  game.categories.map((category) {
-                    return Chip(label: Text(category));
-                  }).toList(),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (!isHost)
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                children:
+                    game.categories.map((category) {
+                      return Chip(label: Text(category));
+                    }).toList(),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                   CustomButton(
-                    text: currentPlayer.isReady ? 'Nie gotowy' : 'Gotowy',
-                    onPressed: _toggleReady,
-                    color: currentPlayer.isReady ? Colors.green : null,
-                    width: 150,
-                  ),
-                if (isHost) ...[
-                  CustomButton(
-                    text: 'Rozpocznij grę',
-                    onPressed: _startGame,
-                    width: 200,
-                  ),
+                      text: "Opuść pokój",
+                      onPressed: _leave,
+                      width: 150,
+                    ),
+                  const SizedBox(width: 8),
+                  if (!isHost)
+                    CustomButton(
+                      text: currentPlayer.isReady ? 'Nie gotowy' : 'Gotowy',
+                      onPressed: _toggleReady,
+                      color: currentPlayer.isReady ? Colors.green : null,
+                      width: 150,
+                    ),
+                  if (isHost) ...[
+                    CustomButton(
+                      text: 'Rozpocznij grę',
+                      onPressed: _startGame,
+                      width: 150,
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

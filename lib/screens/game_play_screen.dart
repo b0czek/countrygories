@@ -237,7 +237,19 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
             ),
         ],
       ),
-      body: Padding(
+      body: Container(
+        constraints: const BoxConstraints.expand(),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+              Theme.of(context).colorScheme.surfaceContainerLowest,          
+            ],
+          ),
+        ),
+        child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -254,7 +266,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              LetterWheel(onStop: isHost ? _selectLetter : null),
+              Center(
+                child: LetterWheel(onStop: isHost ? _selectLetter : null),
+              ),
             ] else ...[
               const SizedBox(height: 16),
               Text(
@@ -306,6 +320,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
             ],
           ],
         ),
+      ),
       ),
     );
   }

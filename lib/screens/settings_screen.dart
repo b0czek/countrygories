@@ -89,6 +89,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _isAddingAnswer = false;
         _answerController.clear();
       });
+      ref.invalidate(customAnswersProvider); 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -105,55 +106,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(title: const Text('Ustawienia')),
       body: Form(
         key: _formKey,
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Zarządzanie kategoriami',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          children: [
+            const Text(
+              'Zarządzanie kategoriami',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildCategoriesList(),
+            const SizedBox(height: 16),
+            if (_isAddingCategory)
+              _buildAddCategoryForm()
+            else
+              CustomButton(
+                text: 'Dodaj nową kategorię',
+                onPressed: () {
+                  setState(() {
+                    _isAddingCategory = true;
+                  });
+                },
               ),
-              const SizedBox(height: 16),
-              _buildCategoriesList(),
-              const SizedBox(height: 16),
-              if (_isAddingCategory)
-                _buildAddCategoryForm()
-              else
-                CustomButton(
-                  text: 'Dodaj nową kategorię',
-                  onPressed: () {
-                    setState(() {
-                      _isAddingCategory = true;
-                    });
-                  },
-                ),
-              const SizedBox(height: 32),
-              const Text(
-                'Zarządzanie odpowiedziami',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            const SizedBox(height: 32),
+            const Text(
+              'Zarządzanie odpowiedziami',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            if (_isAddingAnswer)
+              _buildAddAnswerForm()
+            else
+              CustomButton(
+                text: 'Dodaj nową odpowiedź',
+                onPressed: () {
+                  setState(() {
+                    _isAddingAnswer = true;
+                  });
+                },
               ),
-              const SizedBox(height: 16),
-              if (_isAddingAnswer)
-                _buildAddAnswerForm()
-              else
-                CustomButton(
-                  text: 'Dodaj nową odpowiedź',
-                  onPressed: () {
-                    setState(() {
-                      _isAddingAnswer = true;
-                    });
-                  },
-                ),
-              const SizedBox(height: 32),
-              const Text(
-                'Odpowiedzi niestandardowe',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _buildCustomAnswersList(),
-            ],
-          ),
+            const SizedBox(height: 32),
+            const Text(
+              'Odpowiedzi niestandardowe',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildCustomAnswersList(),
+          ],
         ),
       ),
     );
@@ -341,6 +339,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             return Expanded(
               child: ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
                 itemCount: answers.length,
                 itemBuilder: (context, index) {
                   final answer = answers[index];

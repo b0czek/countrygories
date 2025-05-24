@@ -215,10 +215,21 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
         title: Text('Punktacja - Runda ${game.currentRound}'),
         automaticallyImplyLeading: false,
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Padding(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Container(
+            constraints: const BoxConstraints.expand(),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                    Theme.of(context).colorScheme.surfaceContainerLowest,
+                  ],
+                ),
+              ),
+              child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,6 +274,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                   ],
                 ),
               ),
+            ),
     );
   }
 
@@ -309,7 +321,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                       ),
                     ),
                     ...game.categories.map((category) {
-                      final answer = playerAnswers[category] ?? '';
+                      final answer = (playerAnswers[category] == null || playerAnswers[category]!.trim().isEmpty) ? '-' : playerAnswers[category]!;
                       final score = playerScores[category] ?? 0;
 
                       return DataCell(

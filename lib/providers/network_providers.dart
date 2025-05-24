@@ -3,6 +3,14 @@ import 'package:countrygories/models/player.dart';
 import 'package:countrygories/services/network/client_service.dart';
 import 'package:countrygories/services/network/server_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:network_info_plus/network_info_plus.dart';
+
+final localIpProvider = FutureProvider<String>((ref) async {
+  final info = NetworkInfo();
+  final wifiIP = await info.getWifiIP();
+  return wifiIP ?? "N/A";
+});
+
 
 final isHostProvider = StateProvider<bool>((ref) => false);
 

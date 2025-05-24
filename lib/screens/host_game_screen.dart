@@ -93,7 +93,19 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Hostuj grę')),
-      body: SingleChildScrollView(
+      body: Container(
+        constraints: const BoxConstraints.expand(),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+              Theme.of(context).colorScheme.surfaceContainerLowest,          
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
@@ -145,6 +157,7 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

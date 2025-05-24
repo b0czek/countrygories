@@ -47,7 +47,7 @@ class ScoringService {
           continue;
         }
 
-        if (mode == ScoringMode.automatic) {
+        //if (mode == ScoringMode.automatic) {
           // Check if the answer exists in the database
           final isValid = await databaseService.verifyAnswer(
             category,
@@ -64,10 +64,10 @@ class ScoringService {
           final isUnique = categoryAnswers[category]![answer]!.length == 1;
 
           result[playerId]![category] = isUnique ? 10 : 5;
-        } else {
+        //} else {
           // In manual mode, points will be assigned later
-          result[playerId]![category] = -1;
-        }
+        //  result[playerId]![category] = -1;
+       // }
       }
     }
 
