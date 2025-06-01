@@ -108,7 +108,7 @@ class LobbyService {
         if (!isConnected) {
           _onConnectionLost(clientService);
         } else {
-          _onConnectionRestored(currentPlayer);
+          _onConnectionRestored();
         }
       }),
     );
@@ -240,9 +240,12 @@ class LobbyService {
     _attemptReconnection(clientService);
   }
 
-  void _onConnectionRestored(Player currentPlayer) {
-    final updatedPlayer = currentPlayer.copyWith(isConnected: true);
-    _ref.read(currentPlayerProvider.notifier).state = updatedPlayer;
+  void _onConnectionRestored() {
+    final currentPlayer = _ref.read(currentPlayerProvider);
+    if (currentPlayer != null) {
+      final updatedPlayer = currentPlayer.copyWith(isConnected: true);
+      _ref.read(currentPlayerProvider.notifier).state = updatedPlayer;
+    }
   }
 
   Future<void> _attemptReconnection(ClientService clientService) async {
