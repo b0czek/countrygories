@@ -112,6 +112,10 @@ class ClientService {
       } else if (message.type == MessageType.pong) {
         _lastPongReceived = DateTime.now();
         print('Received pong from server');
+      } else if (message.type == MessageType.hostSessionTerminated) {
+        print('Host session terminated by server');
+        // Server is shutting down, we'll be disconnected
+        _connectionStatusController.add(false);
       }
 
       _messageController.add(message);

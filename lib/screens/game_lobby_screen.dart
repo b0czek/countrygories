@@ -1,4 +1,3 @@
-import 'package:countrygories/services/network/client_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:countrygories/models/game.dart';
@@ -97,6 +96,24 @@ class _GameLobbyScreenState extends ConsumerState<GameLobbyScreen> {
               final game = Game.fromJson(gameData);
               ref.read(gameProvider.notifier).updateGameState(game);
             }
+          } else if (message.type == MessageType.hostSessionTerminated) {
+            // Host has terminated the session
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Host has left the game. The session has been terminated.',
+                  ),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 5),
+                ),
+              );
+
+              // Return to home screen
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+            }
           }
         });
 
@@ -169,33 +186,47 @@ class _GameLobbyScreenState extends ConsumerState<GameLobbyScreen> {
     }
   }
 
-Future<void> _leave() async {
-  final isHost = ref.read(isHostProvider);
-  if (isHost) {
-    //TODO kill server and throw everyone out
-  }
+  Future<void> _leave() async {
+    final isHost = ref.read(isHostProvider);
+    if (isHost) {
+      // Host is leaving - terminate the session and notify all players
+      final serverService = ref.read(serverProvider);
+      if (serverService != null) {
+        try {
+          await serverService.terminateHostSession();
+        } catch (e) {
+          print('Error terminating host session: $e');
+        }
+      }
 
-  final currentPlayer = ref.read(currentPlayerProvider);
-  if (currentPlayer != null) {
-    final clientService = ref.read(
-      clientProvider({
-        'ip': currentPlayer.ipAddress,
-        'port': currentPlayer.port,
-      }),
-    );
-    try {
-      await clientService.disconnectFromServer();
-    } catch (e) {
-      // Możesz dodać logowanie lub snackbar z błędem
+      // Reset host state
+      ref.read(isHostProvider.notifier).state = false;
+      ref.read(serverActiveProvider.notifier).state = false;
+    } else {
+      // Regular player leaving
+      final currentPlayer = ref.read(currentPlayerProvider);
+      if (currentPlayer != null) {
+        final clientService = ref.read(
+          clientProvider({
+            'ip': currentPlayer.ipAddress,
+            'port': currentPlayer.port,
+          }),
+        );
+        try {
+          await clientService.leaveGame(currentPlayer.id);
+          await clientService.disconnectFromServer();
+        } catch (e) {
+          print('Error leaving game: $e');
+        }
+      }
+    }
+
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     }
   }
-
-  if (mounted) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
-  }
-}
 
   void _toggleReady() {
     final currentPlayer = ref.read(currentPlayerProvider);
@@ -311,7 +342,10 @@ Future<void> _leave() async {
             children: [
               Text(
                 'Kod gry: ${game.id.substring(0, 6).toUpperCase()}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               // if (isHost)
               //   Padding(
@@ -329,10 +363,11 @@ Future<void> _leave() async {
                       final localIpAsync = ref.watch(localIpProvider);
 
                       return localIpAsync.when(
-                        data: (ip) => Text(
-                          'Adres IP: $ip',
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                        data:
+                            (ip) => Text(
+                              'Adres IP: $ip',
+                              style: const TextStyle(fontSize: 16),
+                            ),
                         loading: () => const Text('Pobieranie adresu IP...'),
                         error: (err, _) => Text('Błąd IP: $err'),
                       );
@@ -371,10 +406,10 @@ Future<void> _leave() async {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CustomButton(
-                      text: "Opuść pokój",
-                      onPressed: _leave,
-                      width: 150,
-                    ),
+                    text: "Opuść pokój",
+                    onPressed: _leave,
+                    width: 150,
+                  ),
                   const SizedBox(width: 8),
                   if (!isHost)
                     CustomButton(

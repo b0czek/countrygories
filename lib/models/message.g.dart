@@ -37,4 +37,5 @@ const _$MessageTypeEnumMap = {
   MessageType.error: 'error',
   MessageType.ping: 'ping',
   MessageType.pong: 'pong',
+  MessageType.hostSessionTerminated: 'hostSessionTerminated',
 };

@@ -64,6 +64,26 @@ class ServerService {
     print('Server stopped');
   }
 
+  Future<void> terminateHostSession() async {
+    if (_server == null) return;
+
+    // First, notify all clients that the host session is terminated
+    final terminationMessage = Message(
+      type: MessageType.hostSessionTerminated,
+      payload: {'reason': 'Host has left the game'},
+      senderId: 'server',
+      timestamp: DateTime.now(),
+    );
+
+    await broadcastMessage(terminationMessage);
+
+    // Give clients time to receive the message before closing connections
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Then stop the server
+    await stopServer();
+  }
+
   void _handleClient(Socket client) {
     final clientId = const Uuid().v4();
     final clientAddress = client.remoteAddress.address;
@@ -191,9 +211,6 @@ class ServerService {
   }
 
   Future<void> broadcastMessage(Message message) async {
-    final messageJson = json.encode(message.toJson());
-    final data = utf8.encode(messageJson);
-
     for (final clientId in _connectedClients.keys) {
       try {
         await sendToClient(clientId, message);

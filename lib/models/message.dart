@@ -18,6 +18,7 @@ enum MessageType {
   error,
   ping,
   pong,
+  hostSessionTerminated,
 }
 
 @freezed
