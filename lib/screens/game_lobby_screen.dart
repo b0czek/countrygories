@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:countrygories/models/game.dart';
-import 'package:countrygories/models/message.dart';
 import 'package:countrygories/providers/game_providers.dart';
 import 'package:countrygories/providers/network_providers.dart';
 import 'package:countrygories/screens/game_play_screen.dart';
 import 'package:countrygories/screens/home_screen.dart';
+import 'package:countrygories/services/game/lobby_service.dart';
 import 'package:countrygories/widgets/common/custom_button.dart';
 import 'package:countrygories/widgets/game/player_list.dart';
 
@@ -17,210 +16,48 @@ class GameLobbyScreen extends ConsumerStatefulWidget {
 }
 
 class _GameLobbyScreenState extends ConsumerState<GameLobbyScreen> {
+  LobbyService? _lobbyService;
+
   @override
   void initState() {
     super.initState();
-    _setupNetworkListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupLobbyService();
+    });
   }
 
-  void _setupNetworkListeners() {
-    final isHost = ref.read(isHostProvider);
+  void _setupLobbyService() {
+    _lobbyService = LobbyService(ref, context);
 
-    if (isHost) {
-      // Setup network listeners
-      final serverService = ref.read(serverProvider);
-      if (serverService != null) {
-        serverService.onPlayerConnected.listen((player) {
-          ref.read(connectedPlayersProvider.notifier).addPlayer(player);
-          ref.read(gameProvider.notifier).joinGame(player);
-
-          // Send current game state to the newly connected player
-          final game = ref.read(gameProvider);
-          if (game != null) {
-            final clientId =
-                serverService.players.entries
-                    .firstWhere(
-                      (e) => e.value.id == player.id,
-                      orElse: () => MapEntry('', player),
-                    )
-                    .key;
-
-            if (clientId.isNotEmpty) {
-              serverService.sendGameDataToClient(clientId, game);
-            }
-          }
-        });
-
-        serverService.onPlayerDisconnected.listen((playerId) {
-          ref.read(connectedPlayersProvider.notifier).removePlayer(playerId);
-          ref
-              .read(gameProvider.notifier)
-              .updatePlayerStatus(playerId, isConnected: false);
-        });
-
-        serverService.onMessage.listen((message) {
-          if (message.type == MessageType.playerReady) {
-            ref
-                .read(gameProvider.notifier)
-                .updatePlayerStatus(message.senderId, isReady: true);
-          } else if (message.type == MessageType.ping) {
-            final playerId = message.senderId;
-            ref
-                .read(gameProvider.notifier)
-                .updatePlayerStatus(playerId, isConnected: true);
-          }
-        });
-      }
-    } else {
-      final currentPlayer = ref.read(currentPlayerProvider);
-      if (currentPlayer != null) {
-        final clientService = ref.read(
-          clientProvider({
-            'ip': currentPlayer.ipAddress,
-            'port': currentPlayer.port,
-          }),
+    // Set up callbacks
+    _lobbyService!.setGameStartedCallback(() {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const GamePlayScreen()),
         );
-
-        clientService.onMessage.listen((message) {
-          if (message.type == MessageType.gameStarted) {
-            // Go to game screen when game starts
-            if (mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const GamePlayScreen()),
-              );
-            }
-          } else if (message.type == MessageType.gameLobbyData) {
-            // Update client's game lobbstate with data from server
-            if (message.payload.containsKey('game')) {
-              final gameData = message.payload['game'];
-              final game = Game.fromJson(gameData);
-              ref.read(gameProvider.notifier).updateGameState(game);
-            }
-          } else if (message.type == MessageType.hostSessionTerminated) {
-            // Host has terminated the session
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Host has left the game. The session has been terminated.',
-                  ),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 5),
-                ),
-              );
-
-              // Return to home screen
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
-              );
-            }
-          }
-        });
-
-        clientService.connectionStatus.listen((isConnected) {
-          if (!isConnected && mounted) {
-            // If disconnected, show a snackbar
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Connection to server lost! Trying to reconnect...',
-                ),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 8),
-              ),
-            );
-
-            final updatedPlayer = currentPlayer.copyWith(isConnected: false);
-            ref.read(currentPlayerProvider.notifier).state = updatedPlayer;
-
-            // Attempt to reconnect
-            _attemptReconnection(clientService);
-          } else if (isConnected) {
-            // If reconnected after a disconnection
-            final updatedPlayer = currentPlayer.copyWith(isConnected: true);
-            ref.read(currentPlayerProvider.notifier).state = updatedPlayer;
-          }
-        });
       }
-    }
+    });
+
+    _lobbyService!.setHostSessionTerminatedCallback(() {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    });
+
+    // Setup network listeners
+    _lobbyService!.setupNetworkListeners();
   }
 
-  Future<void> _attemptReconnection(clientService) async {
-    if (!mounted) return;
-
-    // Try to reconnect up to 3 times
-    for (int i = 0; i < 3; i++) {
-      try {
-        if (!clientService.isConnected) {
-          await clientService.connectToServer();
-          if (clientService.isConnected) {
-            // Re-join the game with the current player
-            final currentPlayer = ref.read(currentPlayerProvider);
-            if (currentPlayer != null) {
-              await clientService.joinGame(currentPlayer);
-            }
-            return;
-          }
-        } else {
-          return;
-        }
-      } catch (e) {
-        print('Reconnection attempt $i failed: $e');
-      }
-
-      // Wait before next attempt
-      await Future.delayed(const Duration(seconds: 2));
-    }
-
-    // If all reconnection attempts fail
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to reconnect to the server. Please try rejoining the game.',
-          ),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 10),
-        ),
-      );
-    }
+  @override
+  void dispose() {
+    _lobbyService?.dispose();
+    super.dispose();
   }
 
   Future<void> _leave() async {
-    final isHost = ref.read(isHostProvider);
-    if (isHost) {
-      // Host is leaving - terminate the session and notify all players
-      final serverService = ref.read(serverProvider);
-      if (serverService != null) {
-        try {
-          await serverService.terminateHostSession();
-        } catch (e) {
-          print('Error terminating host session: $e');
-        }
-      }
-
-      // Reset host state
-      ref.read(isHostProvider.notifier).state = false;
-      ref.read(serverActiveProvider.notifier).state = false;
-    } else {
-      // Regular player leaving
-      final currentPlayer = ref.read(currentPlayerProvider);
-      if (currentPlayer != null) {
-        final clientService = ref.read(
-          clientProvider({
-            'ip': currentPlayer.ipAddress,
-            'port': currentPlayer.port,
-          }),
-        );
-        try {
-          await clientService.leaveGame(currentPlayer.id);
-          await clientService.disconnectFromServer();
-        } catch (e) {
-          print('Error leaving game: $e');
-        }
-      }
-    }
-
+    await _lobbyService?.leaveGame();
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -229,79 +66,25 @@ class _GameLobbyScreenState extends ConsumerState<GameLobbyScreen> {
   }
 
   void _toggleReady() {
-    final currentPlayer = ref.read(currentPlayerProvider);
-    if (currentPlayer == null) return;
-
-    final isHost = ref.read(isHostProvider);
-    if (isHost) {
-      // Host is always ready
-      return;
-    }
-
-    final updatedPlayer = currentPlayer.copyWith(
-      isReady: !currentPlayer.isReady,
-    );
-    ref.read(currentPlayerProvider.notifier).state = updatedPlayer;
-
-    final clientService = ref.read(
-      clientProvider({
-        'ip': currentPlayer.ipAddress,
-        'port': currentPlayer.port,
-      }),
-    );
-
-    final message = Message(
-      type: MessageType.playerReady,
-      payload: {'isReady': updatedPlayer.isReady},
-      senderId: currentPlayer.id,
-      timestamp: DateTime.now(),
-    );
-
-    clientService.sendMessage(message);
+    _lobbyService?.togglePlayerReady();
   }
 
   void _startGame() {
-    final isHost = ref.read(isHostProvider);
-    if (!isHost) return;
+    if (_lobbyService == null) return;
 
-    final game = ref.read(gameProvider);
-    if (game == null) return;
-
-    final allReady = game.players.every((p) => p.isHost || p.isReady);
-    if (!allReady) {
+    final validationError = _lobbyService!.validateGameStart();
+    if (validationError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nie wszyscy gracze są gotowi!'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: Text(validationError),
+          backgroundColor:
+              validationError.contains('gotowi') ? Colors.orange : Colors.red,
         ),
       );
       return;
     }
 
-    final allConnected = game.players.every((p) => p.isConnected);
-    if (!allConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Niektórzy gracze stracili połączenie!'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    ref.read(gameProvider.notifier).startGame();
-
-    final serverService = ref.read(serverProvider);
-    if (serverService != null) {
-      final message = Message(
-        type: MessageType.gameStarted,
-        payload: {'game': game.toJson()},
-        senderId: game.host.id,
-        timestamp: DateTime.now(),
-      );
-
-      serverService.broadcastMessage(message);
-    }
+    _lobbyService!.startGame();
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const GamePlayScreen()),

@@ -37,35 +37,31 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
     } else {
       final currentPlayer = ref.read(currentPlayerProvider);
       if (currentPlayer != null) {
-        final clientService = ref.read(
-          clientProvider({
-            'ip': currentPlayer.ipAddress,
-            'port': currentPlayer.port,
-          }),
-        );
+        final clientService = ref.read(clientProvider);
+        if (clientService != null) {
+          clientService.onMessage.listen((message) {
+            if (message.type == MessageType.scoringResults) {
+              final scores = Map<String, Map<String, int>>.from(
+                message.payload['scores'].map(
+                  (k, v) => MapEntry(k, Map<String, int>.from(v)),
+                ),
+              );
 
-        clientService.onMessage.listen((message) {
-          if (message.type == MessageType.scoringResults) {
-            final scores = Map<String, Map<String, int>>.from(
-              message.payload['scores'].map(
-                (k, v) => MapEntry(k, Map<String, int>.from(v)),
-              ),
-            );
-
-            setState(() {
-              _scores = scores;
-              _scoresCalculated = true;
-            });
-          } else if (message.type == MessageType.gameEnded) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const ResultsScreen()),
-            );
-          } else if (message.type == MessageType.roundStarted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const GamePlayScreen()),
-            );
-          }
-        });
+              setState(() {
+                _scores = scores;
+                _scoresCalculated = true;
+              });
+            } else if (message.type == MessageType.gameEnded) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const ResultsScreen()),
+              );
+            } else if (message.type == MessageType.roundStarted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const GamePlayScreen()),
+              );
+            }
+          });
+        }
       }
     }
   }
@@ -215,66 +211,67 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
         title: Text('Punktacja - Runda ${game.currentRound}'),
         automaticallyImplyLeading: false,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Container(
-            constraints: const BoxConstraints.expand(),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Theme.of(context).colorScheme.surfaceContainerHighest,
-                    Theme.of(context).colorScheme.surfaceContainerLowest,
-                  ],
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Container(
+                constraints: const BoxConstraints.expand(),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                      Theme.of(context).colorScheme.surfaceContainerLowest,
+                    ],
+                  ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Litera: ${currentRound.letter}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Litera: ${currentRound.letter}',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(child: _buildScoresTable(game, currentRound)),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (isHost &&
-                              game.settings.scoringMode == ScoringMode.manual)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 16.0),
-                              child: CustomButton(
-                                text: 'Zapisz punkty',
-                                onPressed: _saveManualScores,
+                      const SizedBox(height: 16),
+                      Expanded(child: _buildScoresTable(game, currentRound)),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (isHost &&
+                                game.settings.scoringMode == ScoringMode.manual)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 16.0),
+                                child: CustomButton(
+                                  text: 'Zapisz punkty',
+                                  onPressed: _saveManualScores,
+                                  width: 150,
+                                ),
+                              ),
+                            if (isHost)
+                              CustomButton(
+                                text:
+                                    game.currentRound! >=
+                                            game.settings.numberOfRounds
+                                        ? 'Zakończ grę'
+                                        : 'Następna runda',
+                                onPressed: _nextRound,
                                 width: 150,
                               ),
-                            ),
-                          if (isHost)
-                            CustomButton(
-                              text:
-                                  game.currentRound! >=
-                                          game.settings.numberOfRounds
-                                      ? 'Zakończ grę'
-                                      : 'Następna runda',
-                              onPressed: _nextRound,
-                              width: 150,
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 
@@ -321,7 +318,11 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                       ),
                     ),
                     ...game.categories.map((category) {
-                      final answer = (playerAnswers[category] == null || playerAnswers[category]!.trim().isEmpty) ? '-' : playerAnswers[category]!;
+                      final answer =
+                          (playerAnswers[category] == null ||
+                                  playerAnswers[category]!.trim().isEmpty)
+                              ? '-'
+                              : playerAnswers[category]!;
                       final score = playerScores[category] ?? 0;
 
                       return DataCell(

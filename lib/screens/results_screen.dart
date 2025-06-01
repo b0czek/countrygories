@@ -45,76 +45,71 @@ class ResultsScreen extends ConsumerWidget {
             end: Alignment.bottomCenter,
             colors: [
               Theme.of(context).colorScheme.surfaceContainerHighest,
-              Theme.of(context).colorScheme.surfaceContainerLowest,          
+              Theme.of(context).colorScheme.surfaceContainerLowest,
             ],
           ),
         ),
         child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              'Gratulacje!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Zwycięzca: ${sortedPlayers.first.name}',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              const Text(
+                'Gratulacje!',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: _buildResultsTable(
-                sortedPlayers,
-                playerTotalScores,
-                game.rounds.length,
+              const SizedBox(height: 8),
+              Text(
+                'Zwycięzca: ${sortedPlayers.first.name}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            CustomButton(
-              text: 'Powrót do menu',
-              onPressed: () {
-                if (isHost) {
-                  final serverService = ref.read(serverProvider);
-                  if (serverService != null) {
-                    serverService.stopServer();
-                  }
-                  ref.read(serverActiveProvider.notifier).state = false;
-                } else {
-                  final currentPlayer = ref.read(currentPlayerProvider);
-                  if (currentPlayer != null) {
-                    final clientService = ref.read(
-                      clientProvider({
-                        'ip': currentPlayer.ipAddress,
-                        'port': currentPlayer.port,
-                      }),
-                    );
+              const SizedBox(height: 24),
+              Expanded(
+                child: _buildResultsTable(
+                  sortedPlayers,
+                  playerTotalScores,
+                  game.rounds.length,
+                ),
+              ),
+              const SizedBox(height: 24),
+              CustomButton(
+                text: 'Powrót do menu',
+                onPressed: () {
+                  if (isHost) {
+                    final serverService = ref.read(serverProvider);
+                    if (serverService != null) {
+                      serverService.stopServer();
+                    }
+                    ref.read(serverActiveProvider.notifier).state = false;
+                  } else {
+                    final currentPlayer = ref.read(currentPlayerProvider);
+                    if (currentPlayer != null) {
+                      final clientService = ref.read(clientProvider);
 
-                    if (clientService.isConnected) {
-                      clientService.disconnectFromServer();
+                      if (clientService != null && clientService.isConnected) {
+                        clientService.disconnectFromServer();
+                      }
                     }
                   }
-                }
 
-                ref.read(isHostProvider.notifier).state = false;
-                ref.read(currentPlayerProvider.notifier).state = null;
-                ref.read(connectedPlayersProvider.notifier).clear();
-                ref.read(gameProvider.notifier).resetGame();
+                  ref.read(isHostProvider.notifier).state = false;
+                  ref.read(currentPlayerProvider.notifier).state = null;
+                  ref.read(connectedPlayersProvider.notifier).clear();
+                  ref.read(gameProvider.notifier).resetGame();
 
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  (route) => false,
-                );
-              },
-              width: 200,
-            ),
-          ],
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    (route) => false,
+                  );
+                },
+                width: 200,
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

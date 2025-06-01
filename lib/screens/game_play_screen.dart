@@ -60,29 +60,24 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
     } else {
       final currentPlayer = ref.read(currentPlayerProvider);
       if (currentPlayer != null) {
-        final clientService = ref.read(
-          clientProvider({
-            'ip': currentPlayer.ipAddress,
-            'port': currentPlayer.port,
-          }),
-        );
+        final clientService = ref.read(clientProvider);
+        if (clientService != null) {
+          clientService.onMessage.listen((message) {
+            if (message.type == MessageType.letterSelected) {
+              setState(() {
+                _isSelectingLetter = false;
+              });
+              _startRoundTimer();
+            } else if (message.type == MessageType.roundEnded) {
+              _timer?.cancel();
+              _submitAnswers();
 
-        clientService.onMessage.listen((message) {
-          if (message.type == MessageType.letterSelected) {
-            final letter = message.payload['letter'] as String;
-            setState(() {
-              _isSelectingLetter = false;
-            });
-            _startRoundTimer();
-          } else if (message.type == MessageType.roundEnded) {
-            _timer?.cancel();
-            _submitAnswers();
-
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const ScoringScreen()),
-            );
-          }
-        });
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const ScoringScreen()),
+              );
+            }
+          });
+        }
       }
     }
   }
@@ -170,21 +165,17 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
       // Host already got it in game state
     } else {
       // Send to server
-      final clientService = ref.read(
-        clientProvider({
-          'ip': currentPlayer.ipAddress,
-          'port': currentPlayer.port,
-        }),
-      );
+      final clientService = ref.read(clientProvider);
+      if (clientService != null) {
+        final message = Message(
+          type: MessageType.submitAnswers,
+          payload: {'answers': answers},
+          senderId: currentPlayer.id,
+          timestamp: DateTime.now(),
+        );
 
-      final message = Message(
-        type: MessageType.submitAnswers,
-        payload: {'answers': answers},
-        senderId: currentPlayer.id,
-        timestamp: DateTime.now(),
-      );
-
-      clientService.sendMessage(message);
+        clientService.sendMessage(message);
+      }
     }
   }
 
@@ -245,82 +236,82 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
             end: Alignment.bottomCenter,
             colors: [
               Theme.of(context).colorScheme.surfaceContainerHighest,
-              Theme.of(context).colorScheme.surfaceContainerLowest,          
+              Theme.of(context).colorScheme.surfaceContainerLowest,
             ],
           ),
         ),
         child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            if (_isSelectingLetter) ...[
-              const SizedBox(height: 40),
-              Text(
-                isHost
-                    ? 'Kliknij, aby wylosować literę'
-                    : 'Czekaj na wylosowanie litery...',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              if (_isSelectingLetter) ...[
+                const SizedBox(height: 40),
+                Text(
+                  isHost
+                      ? 'Kliknij, aby wylosować literę'
+                      : 'Czekaj na wylosowanie litery...',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              Center(
-                child: LetterWheel(onStop: isHost ? _selectLetter : null),
-              ),
-            ] else ...[
-              const SizedBox(height: 16),
-              Text(
-                'Litera: ${game.currentLetter ?? "?"}',
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 40),
+                Center(
+                  child: LetterWheel(onStop: isHost ? _selectLetter : null),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: game.categories.length,
-                  itemBuilder: (context, index) {
-                    final category = game.categories[index];
-                    return CategoryInput(
-                      category: category,
-                      controller: _controllers[category]!,
-                      letter: game.currentLetter ?? '',
-                      enabled: !_isSubmitting,
-                    );
-                  },
+              ] else ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Litera: ${game.currentLetter ?? "?"}',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed:
-                    _isSubmitting
-                        ? null
-                        : () {
-                          _submitAnswers();
-                          if (isHost) {
-                            _timer?.cancel();
-                            _endRound();
-                          }
-                        },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
+                const SizedBox(height: 24),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: game.categories.length,
+                    itemBuilder: (context, index) {
+                      final category = game.categories[index];
+                      return CategoryInput(
+                        category: category,
+                        controller: _controllers[category]!,
+                        letter: game.currentLetter ?? '',
+                        enabled: !_isSubmitting,
+                      );
+                    },
                   ),
                 ),
-                child: Text(
-                  _isSubmitting ? 'Wysłano!' : 'Zakończ rundę',
-                  style: const TextStyle(fontSize: 18),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed:
+                      _isSubmitting
+                          ? null
+                          : () {
+                            _submitAnswers();
+                            if (isHost) {
+                              _timer?.cancel();
+                              _endRound();
+                            }
+                          },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                  ),
+                  child: Text(
+                    _isSubmitting ? 'Wysłano!' : 'Zakończ rundę',
+                    style: const TextStyle(fontSize: 18),
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
       ),
     );
   }

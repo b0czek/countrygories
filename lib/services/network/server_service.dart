@@ -109,7 +109,7 @@ class ServerService {
     );
   }
 
-  void _handleMessage(String clientId, List<int> data) {
+  void _handleMessage(String clientId, List<int> data) async {
     try {
       final messageJson = utf8.decode(data);
       final message = Message.fromJson(json.decode(messageJson));
@@ -131,9 +131,15 @@ class ServerService {
           timestamp: DateTime.now(),
         );
 
-        sendToClient(clientId, confirmationMessage);
+        await sendToClient(clientId, confirmationMessage);
+
+        // Broadcast player joined event to all other clients
+        await _broadcastPlayerJoined(clientId, player);
       } else if (message.type == MessageType.leaveGame) {
         _disconnectClient(clientId);
+      } else if (message.type == MessageType.playerReady) {
+        // Handle player ready status and broadcast to all clients
+        await _handlePlayerReady(clientId, message);
       } else if (message.type == MessageType.ping) {
         // Respond to ping with a pong
         _respondToPing(clientId);
@@ -172,6 +178,9 @@ class ServerService {
 
     if (player != null) {
       _playerDisconnectedController.add(player.id);
+
+      // Broadcast player left notification to all remaining clients
+      _broadcastPlayerLeft(clientId, player);
     }
   }
 
@@ -283,6 +292,128 @@ class ServerService {
       print('Game data sent to client $clientId');
     } catch (e) {
       print('Error sending game data to client $clientId: $e');
+    }
+  }
+
+  Future<void> _handlePlayerReady(String clientId, Message message) async {
+    try {
+      final playerId = message.senderId;
+      final isReady = message.payload['isReady'] as bool? ?? false;
+
+      // Find the client ID that corresponds to this player ID
+      String? targetClientId;
+      Player? targetPlayer;
+
+      for (final entry in _players.entries) {
+        if (entry.value.id == playerId) {
+          targetClientId = entry.key;
+          targetPlayer = entry.value;
+          break;
+        }
+      }
+
+      if (targetClientId != null && targetPlayer != null) {
+        // Update the player's ready status locally
+        final updatedPlayer = targetPlayer.copyWith(isReady: isReady);
+        _players[targetClientId] = updatedPlayer;
+
+        print(
+          'Player $targetClientId (${targetPlayer.name}) ready status changed to: $isReady',
+        );
+
+        // Broadcast the playerReady message to all connected clients
+        final broadcastMsg = Message(
+          type: MessageType.playerReady,
+          payload: {
+            'playerId': playerId, // Use the actual player ID, not client ID
+            'playerName': targetPlayer.name,
+            'isReady': isReady,
+          },
+          senderId: 'server',
+          timestamp: DateTime.now(),
+        );
+
+        await broadcastMessage(broadcastMsg);
+        print('Player ready status broadcasted to all clients');
+      } else {
+        print('Player with ID $playerId not found for ready status update');
+      }
+    } catch (e) {
+      print('Error handling player ready status for client $clientId: $e');
+    }
+  }
+
+  Future<void> _broadcastPlayerJoined(
+    String newClientId,
+    Player newPlayer,
+  ) async {
+    try {
+      // Create a message to notify all clients about the new player
+      final playerJoinedMessage = Message(
+        type: MessageType.gameLobbyData,
+        payload: {
+          'playerJoined': {
+            'playerId': newClientId,
+            'player': newPlayer.toJson(),
+          },
+        },
+        senderId: 'server',
+        timestamp: DateTime.now(),
+      );
+
+      // Send to all clients except the newly joined one
+      for (final clientId in _connectedClients.keys) {
+        if (clientId != newClientId) {
+          try {
+            await sendToClient(clientId, playerJoinedMessage);
+          } catch (e) {
+            print(
+              'Error sending player joined message to client $clientId: $e',
+            );
+          }
+        }
+      }
+
+      print(
+        'Player joined message broadcasted to ${_connectedClients.length - 1} existing clients',
+      );
+    } catch (e) {
+      print('Error broadcasting player joined message: $e');
+    }
+  }
+
+  Future<void> _broadcastPlayerLeft(
+    String leftClientId,
+    Player leftPlayer,
+  ) async {
+    try {
+      // Create a message to notify all clients about the player leaving
+      final playerLeftMessage = Message(
+        type: MessageType.gameLobbyData,
+        payload: {
+          'playerLeft': {
+            'playerId': leftClientId,
+            'player': leftPlayer.toJson(),
+          },
+        },
+        senderId: 'server',
+        timestamp: DateTime.now(),
+      );
+
+      // Send to all remaining clients
+      for (final clientId in _connectedClients.keys) {
+        try {
+          await sendToClient(clientId, playerLeftMessage);
+        } catch (e) {
+          print('Error sending player left message to client $clientId: $e');
+        }
+      }
+
+      print(
+        'Player left message broadcasted to ${_connectedClients.length} remaining clients',
+      );
+    } catch (e) {
+      print('Error broadcasting player left message: $e');
     }
   }
 

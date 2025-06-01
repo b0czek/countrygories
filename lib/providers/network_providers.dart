@@ -11,7 +11,6 @@ final localIpProvider = FutureProvider<String>((ref) async {
   return wifiIP ?? "N/A";
 });
 
-
 final isHostProvider = StateProvider<bool>((ref) => false);
 
 final serverProvider = Provider<ServerService?>((ref) {
@@ -23,14 +22,19 @@ final serverProvider = Provider<ServerService?>((ref) {
 
 final serverActiveProvider = StateProvider<bool>((ref) => false);
 
-final clientProvider = Provider.family<ClientService, Map<String, dynamic>>((
-  ref,
-  params,
-) {
-  return ClientService(
-    serverIp: params['ip'] as String,
-    serverPort: params['port'] as int,
-  );
+final clientServerIpProvider = StateProvider<String>((ref) => '');
+final clientServerPortProvider = StateProvider<int>((ref) => 8080);
+
+final clientProvider = Provider<ClientService?>((ref) {
+  final isHost = ref.watch(isHostProvider);
+  if (isHost) return null;
+
+  final serverIp = ref.watch(clientServerIpProvider);
+  final serverPort = ref.watch(clientServerPortProvider);
+
+  if (serverIp.isEmpty) return null;
+
+  return ClientService(serverIp: serverIp, serverPort: serverPort);
 });
 
 final currentPlayerProvider = StateProvider<Player?>((ref) => null);

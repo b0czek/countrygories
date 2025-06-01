@@ -6,13 +6,11 @@ import 'package:countrygories/services/game/letter_generator.dart';
 import 'package:uuid/uuid.dart';
 
 final gameProvider = StateNotifierProvider<GameNotifier, Game?>((ref) {
-  return GameNotifier(ref);
+  return GameNotifier();
 });
 
 class GameNotifier extends StateNotifier<Game?> {
-  final Ref _ref;
-
-  GameNotifier(this._ref) : super(null);
+  GameNotifier() : super(null);
 
   void createGame(GameSettings settings, Player host) {
     final gameId = const Uuid().v4();

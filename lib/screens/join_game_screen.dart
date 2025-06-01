@@ -46,12 +46,17 @@ class _JoinGameScreenState extends ConsumerState<JoinGameScreen> {
     });
 
     try {
-      final clientService = ref.read(
-        clientProvider({
-          'ip': _serverIpController.text,
-          'port': int.parse(_serverPortController.text),
-        }),
+      // Set the client connection details in state providers
+      ref.read(clientServerIpProvider.notifier).state =
+          _serverIpController.text;
+      ref.read(clientServerPortProvider.notifier).state = int.parse(
+        _serverPortController.text,
       );
+
+      final clientService = ref.read(clientProvider);
+      if (clientService == null) {
+        throw Exception('Failed to create client service');
+      }
 
       clientService.onMessage.listen((message) {
         print('Message received in listener: ${message.type}');
@@ -111,7 +116,6 @@ class _JoinGameScreenState extends ConsumerState<JoinGameScreen> {
         _isLoading = false;
       });
     }
-
   }
 
   @override
@@ -126,151 +130,147 @@ class _JoinGameScreenState extends ConsumerState<JoinGameScreen> {
             end: Alignment.bottomCenter,
             colors: [
               Theme.of(context).colorScheme.surfaceContainerHighest,
-              Theme.of(context).colorScheme.surfaceContainerLowest,          
+              Theme.of(context).colorScheme.surfaceContainerLowest,
             ],
           ),
         ),
         child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Dane gracza',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _playerNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Twoja nazwa',
-                  border: OutlineInputBorder(),
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Dane gracza',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Proszę podać nazwę';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Dane serwera',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _serverIpController,
-                decoration: const InputDecoration(
-                  labelText: 'Adres IP serwera',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _playerNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Twoja nazwa',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Proszę podać nazwę';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Proszę podać adres IP';
-                  }
-                  final ipRegex = RegExp(
-                    r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$',
-                  );
-                  if (!ipRegex.hasMatch(value)) {
-                    return 'Nieprawidłowy format adresu IP';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _serverPortController,
-                decoration: const InputDecoration(
-                  labelText: 'Port serwera',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 24),
+                const Text(
+                  'Dane serwera',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Proszę podać port';
-                  }
-                  final port = int.tryParse(value);
-                  if (port == null || port <= 0 || port > 65535) {
-                    return 'Port musi być liczbą z zakresu 1-65535';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _serverIpController,
+                  decoration: const InputDecoration(
+                    labelText: 'Adres IP serwera',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Proszę podać adres IP';
+                    }
+                    final ipRegex = RegExp(
+                      r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$',
+                    );
+                    if (!ipRegex.hasMatch(value)) {
+                      return 'Nieprawidłowy format adresu IP';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _serverPortController,
+                  decoration: const InputDecoration(
+                    labelText: 'Port serwera',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Proszę podać port';
+                    }
+                    final port = int.tryParse(value);
+                    if (port == null || port <= 0 || port > 65535) {
+                      return 'Port musi być liczbą z zakresu 1-65535';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              Center(
-                child:
-                    _isLoading
-                        ? Column(
-                          children: [
-                            const CircularProgressIndicator(),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Łączenie z serwerem...',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isLoading = false;
-                                    });
-
-                                    try {
-                                      final clientService = ref.read(
-                                        clientProvider({
-                                          'ip': _serverIpController.text,
-                                          'port': int.parse(
-                                            _serverPortController.text,
-                                          ),
-                                        }),
-                                      );
-
-                                      if (clientService.isConnected) {
-                                        clientService.disconnectFromServer();
-                                      }
-                                    } catch (e) {
-                                      print('Error disconnecting: $e');
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                  ),
-                                  child: const Text('Anuluj'),
+                Center(
+                  child:
+                      _isLoading
+                          ? Column(
+                            children: [
+                              const CircularProgressIndicator(),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Łączenie z serwerem...',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            ),
-                          ],
-                        )
-                        : CustomButton(
-                          text: 'Dołącz do gry',
-                          onPressed: _joinGame,
-                          width: 250,
-                        ),
-              ),
-            ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _isLoading = false;
+                                      });
+
+                                      try {
+                                        final clientService = ref.read(
+                                          clientProvider,
+                                        );
+
+                                        if (clientService != null &&
+                                            clientService.isConnected) {
+                                          clientService.disconnectFromServer();
+                                        }
+                                      } catch (e) {
+                                        print('Error disconnecting: $e');
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                    ),
+                                    child: const Text('Anuluj'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )
+                          : CustomButton(
+                            text: 'Dołącz do gry',
+                            onPressed: _joinGame,
+                            width: 250,
+                          ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
