@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:countrygories/models/message.dart';
 import 'package:countrygories/models/player.dart';
 import 'package:countrygories/models/game.dart';
+import 'package:countrygories/services/network/server_discovery_service.dart';
 import 'package:uuid/uuid.dart';
 
 class ServerService {
@@ -26,6 +27,11 @@ class ServerService {
   Timer? _connectionMonitorTimer;
   final Duration _connectionMonitorInterval = const Duration(seconds: 10);
 
+  // Server discovery service
+  final ServerDiscoveryService _discoveryService = ServerDiscoveryService();
+  String _serverName = 'Countrygories Game';
+  String _hostName = 'Host';
+
   Stream<Message> get onMessage => _messageController.stream;
   Stream<Player> get onPlayerConnected => _playerConnectedController.stream;
   Stream<String> get onPlayerDisconnected =>
@@ -33,15 +39,28 @@ class ServerService {
 
   ServerService({required this.port});
 
-  Future<void> startServer() async {
+  Future<void> startServer({String? serverName, String? hostName}) async {
     if (_server != null) return;
 
     try {
       _server = await ServerSocket.bind(InternetAddress.anyIPv4, port);
       print('Server started on ${_server!.address.address}:${_server!.port}');
 
+      if (serverName != null) _serverName = serverName;
+      if (hostName != null) _hostName = hostName;
+
       _server!.listen(_handleClient);
       _startConnectionMonitoring();
+
+      // Start server discovery advertisement
+      await _discoveryService.startAdvertising(
+        serverName: _serverName,
+        ipAddress: _server!.address.address,
+        port: _server!.port,
+        hostName: _hostName,
+        playerCount: _players.length,
+        maxPlayers: 8,
+      );
     } catch (e) {
       print('Error starting server: $e');
       rethrow;
@@ -52,6 +71,9 @@ class ServerService {
     if (_server == null) return;
 
     _stopConnectionMonitoring();
+
+    // Stop server discovery advertisement
+    await _discoveryService.stopAdvertising();
 
     for (final client in _connectedClients.values) {
       client.close();
@@ -135,8 +157,11 @@ class ServerService {
 
         // Broadcast player joined event to all other clients
         await _broadcastPlayerJoined(clientId, player);
+
+        // Update server discovery info
+        await _updateDiscoveryInfo();
       } else if (message.type == MessageType.leaveGame) {
-        _disconnectClient(clientId);
+        await _disconnectClient(clientId);
       } else if (message.type == MessageType.playerReady) {
         // Handle player ready status and broadcast to all clients
         await _handlePlayerReady(clientId, message);
@@ -166,7 +191,7 @@ class ServerService {
     }
   }
 
-  void _disconnectClient(String clientId) {
+  Future<void> _disconnectClient(String clientId) async {
     final client = _connectedClients.remove(clientId);
     final player = _players.remove(clientId);
     _lastClientPing.remove(clientId);
@@ -181,6 +206,9 @@ class ServerService {
 
       // Broadcast player left notification to all remaining clients
       _broadcastPlayerLeft(clientId, player);
+
+      // Update server discovery info
+      await _updateDiscoveryInfo();
     }
   }
 
@@ -189,7 +217,7 @@ class ServerService {
 
     _connectionMonitorTimer = Timer.periodic(
       _connectionMonitorInterval,
-      (_) => _checkClientConnections(),
+      (_) async => await _checkClientConnections(),
     );
   }
 
@@ -198,7 +226,7 @@ class ServerService {
     _connectionMonitorTimer = null;
   }
 
-  void _checkClientConnections() {
+  Future<void> _checkClientConnections() async {
     final now = DateTime.now();
     final clientsToRemove = <String>[];
 
@@ -215,7 +243,7 @@ class ServerService {
     }
 
     for (final clientId in clientsToRemove) {
-      _disconnectClient(clientId);
+      await _disconnectClient(clientId);
     }
   }
 
@@ -256,16 +284,16 @@ class ServerService {
 
       try {
         client.add(data);
-        await client.flush().catchError((error) {
+        await client.flush().catchError((error) async {
           print('Error flushing data to client $clientId: $error');
-          _disconnectClient(clientId);
+          await _disconnectClient(clientId);
           throw error;
         });
 
         print('Message sent to client $clientId');
       } catch (e) {
         print('Error sending message to client $clientId: $e');
-        _disconnectClient(clientId);
+        await _disconnectClient(clientId);
         rethrow;
       } finally {
         // Release the socket
@@ -424,4 +452,31 @@ class ServerService {
   String get serverAddress => _server?.address.address ?? 'Not started';
 
   int get serverPort => _server?.port ?? 0;
+
+  Future<void> _updateDiscoveryInfo() async {
+    if (_server != null) {
+      try {
+        // Stop current advertising
+        await _discoveryService.stopAdvertising();
+
+        // Start advertising again with updated info
+        await _discoveryService.startAdvertising(
+          serverName: _serverName,
+          ipAddress: _server!.address.address,
+          port: _server!.port,
+          hostName: _hostName,
+          playerCount: _players.length,
+          maxPlayers: 8,
+        );
+
+        print(
+          'Server discovery info restarted: $_serverName on ${_server!.address.address}:${_server!.port} with ${_players.length} players',
+        );
+      } catch (e) {
+        print('Error updating discovery info: $e');
+      }
+    } else {
+      print('Server stopped, not able to update discovery info');
+    }
+  }
 }

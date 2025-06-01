@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:countrygories/models/player.dart';
 import 'package:countrygories/services/network/client_service.dart';
 import 'package:countrygories/services/network/server_service.dart';
+import 'package:countrygories/services/network/server_discovery_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
@@ -24,6 +25,17 @@ final serverActiveProvider = StateProvider<bool>((ref) => false);
 
 final clientServerIpProvider = StateProvider<String>((ref) => '');
 final clientServerPortProvider = StateProvider<int>((ref) => 8080);
+
+// Server discovery provider
+final serverDiscoveryProvider = Provider<ServerDiscoveryService>((ref) {
+  return ServerDiscoveryService();
+});
+
+// Discovered servers provider
+final discoveredServersProvider = StreamProvider<List<DiscoveredServer>>((ref) {
+  final discoveryService = ref.watch(serverDiscoveryProvider);
+  return discoveryService.discoveredServers;
+});
 
 final clientProvider = Provider<ClientService?>((ref) {
   final isHost = ref.watch(isHostProvider);

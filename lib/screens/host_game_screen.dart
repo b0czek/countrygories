@@ -49,7 +49,10 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         throw Exception('Server service not available');
       }
 
-      await serverService.startServer();
+      await serverService.startServer(
+        serverName: '${_playerNameController.text}\'s Game',
+        hostName: _playerNameController.text,
+      );
       ref.read(serverActiveProvider.notifier).state = true;
 
       // Create local player (host)
@@ -101,63 +104,63 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
             end: Alignment.bottomCenter,
             colors: [
               Theme.of(context).colorScheme.surfaceContainerHighest,
-              Theme.of(context).colorScheme.surfaceContainerLowest,          
+              Theme.of(context).colorScheme.surfaceContainerLowest,
             ],
           ),
         ),
         child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Ustawienia gry',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _playerNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Twoja nazwa',
-                  border: OutlineInputBorder(),
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Ustawienia gry',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Proszę podać nazwę';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildGameSettingsSection(settings),
-              const SizedBox(height: 24),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _playerNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Twoja nazwa',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Proszę podać nazwę';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildGameSettingsSection(settings),
+                const SizedBox(height: 24),
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
+                Center(
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator()
+                          : CustomButton(
+                            text: 'Rozpocznij hosting',
+                            onPressed: _startServer,
+                            width: 250,
+                          ),
                 ),
-              Center(
-                child:
-                    _isLoading
-                        ? const CircularProgressIndicator()
-                        : CustomButton(
-                          text: 'Rozpocznij hosting',
-                          onPressed: _startServer,
-                          width: 250,
-                        ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
