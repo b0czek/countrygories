@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:countrygories/models/game.dart';
 import 'package:countrygories/models/game_settings.dart';
 import 'package:countrygories/models/message.dart';
 import 'package:countrygories/providers/database_providers.dart';
@@ -10,6 +9,7 @@ import 'package:countrygories/screens/game_play_screen.dart';
 import 'package:countrygories/screens/results_screen.dart';
 import 'package:countrygories/services/game/scoring_service.dart';
 import 'package:countrygories/widgets/common/custom_button.dart';
+import 'package:countrygories/widgets/scoring/responsive_scoring_table.dart';
 
 class ScoringScreen extends ConsumerStatefulWidget {
   const ScoringScreen({super.key});
@@ -239,7 +239,22 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Expanded(child: _buildScoresTable(game, currentRound)),
+                      Expanded(
+                        child: ResponsiveScoringTable(
+                          game: game,
+                          round: currentRound,
+                          scores: _scores,
+                          isManualScoring:
+                              game.settings.scoringMode == ScoringMode.manual,
+                          isHost: isHost,
+                          onScoreChanged: (playerId, category, score) {
+                            setState(() {
+                              _scores.putIfAbsent(playerId, () => {});
+                              _scores[playerId]![category] = score;
+                            });
+                          },
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       Center(
                         child: Row(
@@ -272,129 +287,6 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                   ),
                 ),
               ),
-    );
-  }
-
-  Widget _buildScoresTable(Game game, GameRound round) {
-    final isManualScoring = game.settings.scoringMode == ScoringMode.manual;
-    final isHost = ref.read(isHostProvider);
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          columnSpacing: 20,
-          headingRowHeight: 40,
-          // Increase row height when in manual scoring mode to accommodate dropdown
-          dataRowMinHeight: isManualScoring && isHost ? 80 : 56,
-          dataRowMaxHeight: isManualScoring && isHost ? 80 : 56,
-          columns: [
-            const DataColumn(label: Text('Gracz')),
-            ...game.categories.map(
-              (category) => DataColumn(label: Text(category)),
-            ),
-            const DataColumn(label: Text('Suma')),
-          ],
-          rows:
-              game.players.map((player) {
-                final playerAnswers = round.answers[player.id] ?? {};
-                final playerScores = _scores[player.id] ?? {};
-
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            player.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          // Add empty SizedBox to maintain vertical spacing consistency
-                          if (isManualScoring && isHost)
-                            const SizedBox(height: 16),
-                        ],
-                      ),
-                    ),
-                    ...game.categories.map((category) {
-                      final answer =
-                          (playerAnswers[category] == null ||
-                                  playerAnswers[category]!.trim().isEmpty)
-                              ? '-'
-                              : playerAnswers[category]!;
-                      final score = playerScores[category] ?? 0;
-
-                      return DataCell(
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(answer),
-                            if (isManualScoring && isHost)
-                              DropdownButton<int>(
-                                value: score < 0 ? 0 : score,
-                                isDense: true,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 0,
-                                    child: Text('0 pkt'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 5,
-                                    child: Text('5 pkt'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 10,
-                                    child: Text('10 pkt'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    setState(() {
-                                      _scores.putIfAbsent(player.id, () => {});
-                                      _scores[player.id]![category] = value;
-                                    });
-                                  }
-                                },
-                              )
-                            else
-                              Text(
-                                '${score < 0 ? "?" : score} pkt',
-                                style: TextStyle(
-                                  color:
-                                      score == 10
-                                          ? Colors.green
-                                          : (score == 5
-                                              ? Colors.orange
-                                              : Colors.red),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    }),
-                    DataCell(
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${playerScores.values.where((s) => s > 0).fold(0, (sum, score) => sum + score)} pkt',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          // Add empty SizedBox to maintain vertical spacing consistency
-                          if (isManualScoring && isHost)
-                            const SizedBox(height: 16),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-        ),
-      ),
     );
   }
 }
