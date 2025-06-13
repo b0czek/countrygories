@@ -31,6 +31,8 @@ class CategoryInput extends StatelessWidget {
         enabled: enabled && letter.isNotEmpty,
         textCapitalization: TextCapitalization.sentences,
         textInputAction: TextInputAction.next,
+        autocorrect: false,
+        enableSuggestions: false,
         onChanged: (value) {
           if (value.isNotEmpty &&
               value[0].toLowerCase() == letter.toLowerCase()) {

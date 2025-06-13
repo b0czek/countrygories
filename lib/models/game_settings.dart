@@ -10,7 +10,7 @@ class GameSettings with _$GameSettings {
   const factory GameSettings({
     @Default(5) int numberOfRounds,
     @Default(60) int timePerRound,
-    @Default(ScoringMode.automatic) ScoringMode scoringMode,
+    @Default(ScoringMode.manual) ScoringMode scoringMode,
     @Default(true) bool allowCustomCategories,
     @Default(["Q", "V", "X", "Y"]) List<String> excludedLetters,
     @Default([]) List<String> selectedCategories,

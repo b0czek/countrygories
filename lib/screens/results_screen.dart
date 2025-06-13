@@ -124,6 +124,7 @@ class ResultsScreen extends ConsumerWidget {
       itemBuilder: (context, index) {
         final player = sortedPlayers[index];
         final totalScore = playerTotalScores[player.id]!;
+        final roundKeys = player.scores.keys.toList();
 
         return Card(
           elevation: index == 0 ? 4 : 1,
@@ -147,29 +148,28 @@ class ResultsScreen extends ConsumerWidget {
               player.name,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            subtitle: Row(
+            subtitle: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
               children: [
-                const Text('Rundy: '),
-                ...List.generate(roundsCount, (roundIndex) {
-                  final roundId = player.scores.keys.elementAtOrNull(
-                    roundIndex,
-                  );
-                  final roundScore =
-                      roundId != null ? player.scores[roundId] ?? 0 : 0;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Text(
-                      '$roundScore',
-                      style: TextStyle(
-                        color: roundScore > 0 ? Colors.green : Colors.grey,
-                        fontWeight: FontWeight.bold,
-                      ),
+                const Text(
+                  'Rundy:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                ...roundKeys.map((roundId) {
+                  final roundScore = player.scores[roundId] ?? 0;
+                  return Text(
+                    '$roundScore',
+                    style: TextStyle(
+                      color: roundScore > 0 ? Colors.green : Colors.grey,
+                      fontWeight: FontWeight.bold,
                     ),
                   );
-                }),
+                }).toList(),
               ],
             ),
+
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(

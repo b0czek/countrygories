@@ -175,7 +175,7 @@ class _$GameSettingsImpl implements _GameSettings {
   const _$GameSettingsImpl(
       {this.numberOfRounds = 5,
       this.timePerRound = 60,
-      this.scoringMode = ScoringMode.automatic,
+      this.scoringMode = ScoringMode.manual,
       this.allowCustomCategories = true,
       final List<String> excludedLetters = const ["Q", "V", "X", "Y"],
       final List<String> selectedCategories = const []})

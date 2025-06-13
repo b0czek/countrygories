@@ -57,6 +57,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  void _deleteCategory(String categoryName) async {
+  final shouldDelete = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Potwierdzenie'),
+      content: Text('Czy na pewno chcesz usunąć kategorię "$categoryName"?\nUwaga: wszystkie odpowiedzi z nią powiązane zostaną również usunięte.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Anuluj'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Usuń'),
+        ),
+      ],
+    ),
+  );
+
+  if (shouldDelete != true) return;
+
+  try {
+    final databaseService = ref.read(databaseServiceProvider);
+    await databaseService.deleteCategory(categoryName);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Kategoria została usunięta'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    if (_selectedCategory == categoryName) {
+      setState(() {
+        _selectedCategory = null;
+      });
+    }
+
+    ref.invalidate(categoriesProvider);
+    ref.invalidate(customAnswersProvider); // odśwież odpowiedzi niestandardowe
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Błąd usuwania kategorii: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+
   void _addAnswer() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -179,9 +230,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         category.isCustom
                             ? IconButton(
                               icon: const Icon(Icons.delete),
-                              onPressed: () async {
-                                // TODO: Implement delete category functionality
-                              },
+                              onPressed: () => _deleteCategory(category.name),
                             )
                             : null,
                     onTap: () {
@@ -322,90 +371,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildCustomAnswersList() {
-    return Consumer(
-      builder: (context, ref, child) {
-        final customAnswersAsync = ref.watch(customAnswersProvider);
+  return Consumer(
+    builder: (context, ref, child) {
+      final customAnswersAsync = ref.watch(customAnswersProvider);
 
-        return customAnswersAsync.when(
-          data: (answers) {
-            if (answers.isEmpty) {
-              return const Center(
-                child: Text(
-                  'Brak niestandardowych odpowiedzi',
-                  style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+      return customAnswersAsync.when(
+        data: (answers) {
+          final filteredAnswers = _selectedCategory == null
+              ? []
+              : answers.where((a) => a.categoryName == _selectedCategory).toList();
+
+          if (_selectedCategory == null) {
+            return const Text(
+              'Wybierz kategorię, aby zobaczyć odpowiedzi.',
+              style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+            );
+          }
+
+          if (filteredAnswers.isEmpty) {
+            return const Text(
+              'Brak niestandardowych odpowiedzi dla tej kategorii.',
+              style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+            );
+          }
+
+          return ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: filteredAnswers.length,
+            itemBuilder: (context, index) {
+              final answer = filteredAnswers[index];
+              return ListTile(
+                title: Text(answer.answer),
+                subtitle: Text('Kategoria: ${answer.categoryName}, Litera: ${answer.letter}'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () async {
+                    final shouldDelete = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Potwierdzenie'),
+                        content: const Text('Czy na pewno chcesz usunąć tę odpowiedź?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text('Anuluj'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text('Usuń'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (shouldDelete == true) {
+                      try {
+                        await ref.read(deleteAnswerProvider(answer.id));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Odpowiedź usunięta pomyślnie'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        ref.invalidate(customAnswersProvider);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Błąd usuwania odpowiedzi: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
                 ),
               );
-            }
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Text('Error: $error'),
+      );
+    },
+  );
+}
 
-            return Expanded(
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: answers.length,
-                itemBuilder: (context, index) {
-                  final answer = answers[index];
-                  return ListTile(
-                    title: Text(answer.answer),
-                    subtitle: Text(
-                      'Kategoria: ${answer.categoryName}, Litera: ${answer.letter}',
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () async {
-                        final shouldDelete = await showDialog<bool>(
-                          context: context,
-                          builder:
-                              (context) => AlertDialog(
-                                title: const Text('Potwierdzenie'),
-                                content: const Text(
-                                  'Czy na pewno chcesz usunąć tę odpowiedź?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(false),
-                                    child: const Text('Anuluj'),
-                                  ),
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(true),
-                                    child: const Text('Usuń'),
-                                  ),
-                                ],
-                              ),
-                        );
-
-                        if (shouldDelete == true) {
-                          try {
-                            await ref.read(deleteAnswerProvider(answer.id));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Odpowiedź usunięta pomyślnie'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Błąd usuwania odpowiedzi: ${e.toString()}',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Text('Error: $error'),
-        );
-      },
-    );
-  }
 }

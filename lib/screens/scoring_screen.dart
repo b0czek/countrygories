@@ -156,6 +156,8 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
     final isHost = ref.read(isHostProvider);
     if (!isHost) return;
 
+    if (game.settings.scoringMode == ScoringMode.manual) _saveManualScores();
+
     if (game.currentRound! >= game.settings.numberOfRounds) {
       ref.read(gameProvider.notifier).endGame();
 

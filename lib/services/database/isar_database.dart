@@ -270,4 +270,26 @@ class IsarDatabaseService {
       await isar.answerEntrys.delete(id);
     });
   }
+
+  Future<void> deleteCategory(String categoryName) async {
+  final isar = await db;
+
+  await isar.writeTxn(() async {
+    await isar.answerEntrys
+        .filter()
+        .categoryNameEqualTo(categoryName)
+        .deleteAll();
+
+   
+    final category = await isar.categorys
+        .filter()
+        .nameEqualTo(categoryName)
+        .findFirst();
+
+    if (category != null) {
+      await isar.categorys.delete(category.id);
+    }
+  });
+}
+
 }

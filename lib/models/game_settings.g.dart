@@ -12,7 +12,7 @@ _$GameSettingsImpl _$$GameSettingsImplFromJson(Map<String, dynamic> json) =>
       timePerRound: (json['timePerRound'] as num?)?.toInt() ?? 60,
       scoringMode:
           $enumDecodeNullable(_$ScoringModeEnumMap, json['scoringMode']) ??
-              ScoringMode.automatic,
+              ScoringMode.manual,
       allowCustomCategories: json['allowCustomCategories'] as bool? ?? true,
       excludedLetters: (json['excludedLetters'] as List<dynamic>?)
               ?.map((e) => e as String)

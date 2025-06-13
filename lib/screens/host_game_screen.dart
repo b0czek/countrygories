@@ -97,71 +97,84 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Hostuj grę')),
       body: Container(
-        constraints: const BoxConstraints.expand(),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.surfaceContainerHighest,
-              Theme.of(context).colorScheme.surfaceContainerLowest,
-            ],
-          ),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Ustawienia gry',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _playerNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Twoja nazwa',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Proszę podać nazwę';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildGameSettingsSection(settings),
-                const SizedBox(height: 24),
-                if (_errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
+  constraints: const BoxConstraints.expand(),
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Theme.of(context).colorScheme.surfaceContainerHighest,
+        Theme.of(context).colorScheme.surfaceContainerLowest,
+      ],
+    ),
+  ),
+  child: LayoutBuilder(
+    builder: (context, constraints) {
+      return Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Ustawienia gry',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                Center(
-                  child:
-                      _isLoading
-                          ? const CircularProgressIndicator()
-                          : CustomButton(
-                            text: 'Rozpocznij hosting',
-                            onPressed: _startServer,
-                            width: 250,
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _playerNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Twoja nazwa',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Proszę podać nazwę';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildGameSettingsSection(settings),
+                    const SizedBox(height: 24),
+                    if (_errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
                           ),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Center(
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : CustomButton(
+                      text: 'Rozpocznij hosting',
+                      onPressed: _startServer,
+                      width: 250,
+                    ),
+            ),
+          ),
+        ],
+      );
+    },
+  ),
+),
+
     );
   }
 
@@ -202,42 +215,42 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
                 .updateTimePerRound(value.toInt());
           },
         ),
-        const SizedBox(height: 16),
-        const Text(
-          'Tryb punktacji:',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        DropdownButton<ScoringMode>(
-          value: settings.scoringMode,
-          isExpanded: true,
-          onChanged: (ScoringMode? newValue) {
-            if (newValue != null) {
-              ref
-                  .read(gameSettingsProvider.notifier)
-                  .updateScoringMode(newValue);
-            }
-          },
-          items: const [
-            DropdownMenuItem(
-              value: ScoringMode.automatic,
-              child: Text('Automatyczny'),
-            ),
-            DropdownMenuItem(
-              value: ScoringMode.manual,
-              child: Text('Ręczny (host przyznaje punkty)'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        SwitchListTile(
-          title: const Text('Zezwalaj na niestandardowe kategorie'),
-          value: settings.allowCustomCategories,
-          onChanged: (bool value) {
-            ref
-                .read(gameSettingsProvider.notifier)
-                .toggleCustomCategories(value);
-          },
-        ),
+        // const SizedBox(height: 16),
+        // const Text(
+        //   'Tryb punktacji:',
+        //   style: TextStyle(fontWeight: FontWeight.bold),
+        // ),
+        // DropdownButton<ScoringMode>(
+        //   value: settings.scoringMode,
+        //   isExpanded: true,
+        //   onChanged: (ScoringMode? newValue) {
+        //     if (newValue != null) {
+        //       ref
+        //           .read(gameSettingsProvider.notifier)
+        //           .updateScoringMode(newValue);
+        //     }
+        //   },
+        //   items: const [
+        //     DropdownMenuItem(
+        //       value: ScoringMode.automatic,
+        //       child: Text('Automatyczny'),
+        //     ),
+        //     DropdownMenuItem(
+        //       value: ScoringMode.manual,
+        //       child: Text('Ręczny (host przyznaje punkty)'),
+        //     ),
+        //   ],
+        // ),
+        // const SizedBox(height: 16),
+        // SwitchListTile(
+        //   title: const Text('Zezwalaj na niestandardowe kategorie'),
+        //   value: settings.allowCustomCategories,
+        //   onChanged: (bool value) {
+        //     ref
+        //         .read(gameSettingsProvider.notifier)
+        //         .toggleCustomCategories(value);
+        //   },
+        // ),
         const SizedBox(height: 16),
         const Text(
           'Wybrane kategorie:',
