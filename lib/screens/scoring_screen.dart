@@ -56,6 +56,10 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                 MaterialPageRoute(builder: (context) => const ResultsScreen()),
               );
             } else if (message.type == MessageType.roundStarted) {
+              final round = (message.payload['round'] as int) + 1;
+              // Host updates the current round after the LetterSelected
+              ref.read(gameProvider.notifier).syncRoundFromServer(round);
+
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => const GamePlayScreen()),
               );
@@ -183,7 +187,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
       if (serverService != null) {
         final message = Message(
           type: MessageType.roundStarted,
-          payload: {},
+          payload: {'round': game.currentRound},
           senderId: game.host.id,
           timestamp: DateTime.now(),
         );

@@ -90,6 +90,7 @@ class LobbyService {
     _subscriptions.add(
       clientService.onMessage.listen((message) {
         if (message.type == MessageType.gameStarted) {
+          _ref.read(gameProvider.notifier).syncRoundFromServer(1);
           // Delegate navigation to callback
           _onGameStarted();
         } else if (message.type == MessageType.gameLobbyData) {

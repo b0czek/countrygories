@@ -67,6 +67,10 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
               setState(() {
                 _isSelectingLetter = false;
               });
+
+              final letter = message.payload['letter'] as String;
+              ref.read(gameProvider.notifier).syncLetterFromServer(letter);
+
               _startRoundTimer();
             } else if (message.type == MessageType.roundEnded) {
               _timer?.cancel();

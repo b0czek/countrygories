@@ -194,4 +194,14 @@ class GameNotifier extends StateNotifier<Game?> {
   void updateGameState(Game game) {
     state = game;
   }
+
+  void syncLetterFromServer(String letter) {
+    if (state == null) return;
+    state = state!.copyWith(currentLetter: letter);
+  }
+
+  void syncRoundFromServer(int roundNumber) {
+    if (state == null) return;
+    state = state!.copyWith(currentRound: roundNumber);
+  }
 }
