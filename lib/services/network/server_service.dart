@@ -169,6 +169,17 @@ class ServerService {
         // Respond to ping with a pong
         _respondToPing(clientId);
       }
+      else if (message.type == MessageType.submitAnswers) {
+        final roundEndedMessage = Message(
+          type: MessageType.roundEnded,
+          payload: {
+            'info': 'Runda zakończona przez submitAnswers',
+          },
+          senderId: 'server',
+          timestamp: DateTime.now(),
+        );
+        await broadcastMessage(roundEndedMessage);
+      }
 
       _messageController.add(message);
     } catch (e) {

@@ -54,6 +54,11 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
             );
 
             ref.read(gameProvider.notifier).submitAnswers(playerId, answers);
+            _timer?.cancel();
+            _submitAnswers();
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const ScoringScreen()),
+            );
           }
         });
       }
