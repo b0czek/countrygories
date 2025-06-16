@@ -23,6 +23,9 @@ class ClientService {
   final StreamController<Game> _gameLobbyDataController =
       StreamController<Game>.broadcast(); // New controller for game data
 
+  // Message buffering for handling partial/multiple messages
+  String _messageBuffer = '';
+
   Stream<Message> get onMessage => _messageController.stream;
   Stream<void> get onConnected => _connectedController.stream;
   Stream<void> get onDisconnected => _disconnectedController.stream;
@@ -83,44 +86,63 @@ class ClientService {
     _stopKeepAlive();
     await _socket!.close();
     _socket = null;
+    _messageBuffer = ''; // Clear message buffer
   }
 
   void _handleMessage(List<int> data) {
     try {
-      final messageJson = utf8.decode(data);
-      print('Raw message from server: $messageJson');
+      final dataString = utf8.decode(data);
+      _messageBuffer += dataString;
 
-      final message = Message.fromJson(json.decode(messageJson));
+      // Split by newlines to get complete messages
+      final messages = _messageBuffer.split('\n');
+      
+      // Keep the last part (might be incomplete) in the buffer
+      _messageBuffer = messages.removeLast();
 
-      print('Message from server: ${message.type}');
-
-      if (message.type == MessageType.joinGame &&
-          message.payload.containsKey('status') &&
-          message.payload['status'] == 'accepted') {
-        print('Join game accepted by server!');
-        _joinAccepted = true;
-        _joinAcceptedController.add(true);
-      } else if (message.type == MessageType.gameLobbyData &&
-          message.payload.containsKey('game')) {
-        print('Game lobby data received from server!');
+      // Process each complete message
+      for (final messageJson in messages) {
+        if (messageJson.trim().isEmpty) continue;
+        
         try {
-          final gameData = Game.fromJson(message.payload['game']);
-          _gameLobbyDataController.add(gameData);
-        } catch (e) {
-          print('Error parsing game data: $e');
-        }
-      } else if (message.type == MessageType.pong) {
-        _lastPongReceived = DateTime.now();
-        print('Received pong from server');
-      } else if (message.type == MessageType.hostSessionTerminated) {
-        print('Host session terminated by server');
-        // Server is shutting down, we'll be disconnected
-        _connectionStatusController.add(false);
-      }
+          final message = Message.fromJson(json.decode(messageJson));
 
-      _messageController.add(message);
+          if (message.type != MessageType.ping &&
+              message.type != MessageType.pong) {
+            print('Raw message from server: $messageJson');
+          }
+
+          if (message.type == MessageType.joinGame &&
+              message.payload.containsKey('status') &&
+              message.payload['status'] == 'accepted') {
+            print('Join game accepted by server!');
+            _joinAccepted = true;
+            _joinAcceptedController.add(true);
+          } else if (message.type == MessageType.gameLobbyData &&
+              message.payload.containsKey('game')) {
+            print('Game lobby data received from server!');
+            try {
+              final gameData = Game.fromJson(message.payload['game']);
+              _gameLobbyDataController.add(gameData);
+            } catch (e) {
+              print('Error parsing game data: $e');
+            }
+          } else if (message.type == MessageType.pong) {
+            _lastPongReceived = DateTime.now();
+            print('Received pong from server');
+          } else if (message.type == MessageType.hostSessionTerminated) {
+            print('Host session terminated by server');
+            // Server is shutting down, we'll be disconnected
+            _connectionStatusController.add(false);
+          }
+
+          _messageController.add(message);
+        } catch (e) {
+          print('Error parsing individual message "$messageJson": $e');
+        }
+      }
     } catch (e) {
-      print('Error parsing message from server: $e');
+      print('Error handling message data: $e');
     }
   }
 
@@ -180,7 +202,8 @@ class ClientService {
     }
 
     final messageJson = json.encode(message.toJson());
-    final data = utf8.encode(messageJson);
+    final messageWithDelimiter = messageJson + '\n'; // Add newline delimiter
+    final data = utf8.encode(messageWithDelimiter);
 
     _socket!.add(data);
     await _socket!.flush();

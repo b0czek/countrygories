@@ -81,8 +81,6 @@ class _JoinGameScreenState extends ConsumerState<JoinGameScreen> {
       }
 
       clientService.onMessage.listen((message) {
-        print('Message received in listener: ${message.type}');
-
         if (message.type == MessageType.joinGame &&
             message.payload.containsKey('status') &&
             message.payload['status'] == 'accepted') {

@@ -22,6 +22,9 @@ class ServerService {
   // Add locks to prevent concurrent socket operations
   final Map<String, bool> _socketInUse = {};
 
+  // Message buffering for handling partial/multiple messages per client
+  final Map<String, String> _clientMessageBuffers = {};
+
   // Keep track of the last ping from each client
   final Map<String, DateTime> _lastClientPing = {};
   Timer? _connectionMonitorTimer;
@@ -146,48 +149,71 @@ class ServerService {
 
   void _handleMessage(String clientId, List<int> data) async {
     try {
-      final messageJson = utf8.decode(data);
-      final message = Message.fromJson(json.decode(messageJson));
+      final dataString = utf8.decode(data);
+      
+      // Initialize buffer for new client if needed
+      _clientMessageBuffers.putIfAbsent(clientId, () => '');
+      _clientMessageBuffers[clientId] = _clientMessageBuffers[clientId]! + dataString;
 
-      print('Message from $clientId: ${message.type}');
+      // Split by newlines to get complete messages
+      final messages = _clientMessageBuffers[clientId]!.split('\n');
+      
+      // Keep the last part (might be incomplete) in the buffer
+      _clientMessageBuffers[clientId] = messages.removeLast();
 
-      _lastClientPing[clientId] = DateTime.now();
+      // Process each complete message
+      for (final messageJson in messages) {
+        if (messageJson.trim().isEmpty) continue;
+        
+        try {
+          final message = Message.fromJson(json.decode(messageJson));
 
-      if (message.type == MessageType.joinGame) {
-        final player = Player.fromJson(message.payload['player']);
-        _players[clientId] = player;
-        _playerConnectedController.add(player);
+          print('Message from $clientId: ${message.type}');
 
-        // Send acceptance message back to the client
-        final confirmationMessage = Message(
-          type: MessageType.joinGame,
-          payload: {'status': 'accepted', 'playerId': clientId},
-          senderId: 'server',
-          timestamp: DateTime.now(),
-        );
+          _lastClientPing[clientId] = DateTime.now();
 
-        await sendToClient(clientId, confirmationMessage);
-        // Broadcast player joined event to all other clients
-        await _broadcastPlayerJoined(clientId, player);
+          if (message.type == MessageType.joinGame) {
+            final player = Player.fromJson(message.payload['player']);
+            _players[clientId] = player;
+            _playerConnectedController.add(player);
 
-        // Update server discovery info
-        await _updateDiscoveryInfo();
-      } else if (message.type == MessageType.leaveGame) {
-        await _disconnectClient(clientId);
-      } else if (message.type == MessageType.playerReady) {
-        // Handle player ready status and broadcast to all clients
-        await _handlePlayerReady(clientId, message);
-      } else if (message.type == MessageType.ping) {
-        // Respond to ping with a pong
-        _respondToPing(clientId);
-      } else if (message.type == MessageType.playerSubmitted) {
-        // Broadcast player submission status to all clients
-        await broadcastMessage(message);
+            // Send acceptance message back to the client
+            final confirmationMessage = Message(
+              type: MessageType.joinGame,
+              payload: {'status': 'accepted', 'playerId': clientId},
+              senderId: 'server',
+              timestamp: DateTime.now(),
+            );
+
+            await sendToClient(clientId, confirmationMessage);
+            // Broadcast player joined event to all other clients
+            await _broadcastPlayerJoined(clientId, player);
+
+            // Update server discovery info
+            await _updateDiscoveryInfo();
+          } else if (message.type == MessageType.leaveGame) {
+            await _disconnectClient(clientId);
+          } else if (message.type == MessageType.playerReady) {
+            // Handle player ready status and broadcast to all clients
+            await _handlePlayerReady(clientId, message);
+          } else if (message.type == MessageType.ping) {
+            // Respond to ping with a pong
+            _respondToPing(clientId);
+          } else if (message.type == MessageType.playerSubmitted) {
+            // Broadcast player submission status to all clients
+            await broadcastMessage(message);
+          } else if (message.type == MessageType.scoreUpdate) {
+            // Broadcast score updates to all clients
+            await broadcastMessage(message);
+          }
+
+          _messageController.add(message);
+        } catch (e) {
+          print('Error parsing individual message "$messageJson" from $clientId: $e');
+        }
       }
-
-      _messageController.add(message);
     } catch (e) {
-      print('Error parsing message from $clientId: $e');
+      print('Error handling message data from $clientId: $e');
     }
   }
 
@@ -211,6 +237,7 @@ class ServerService {
     final player = _players.remove(clientId);
     _lastClientPing.remove(clientId);
     _socketInUse.remove(clientId);
+    _clientMessageBuffers.remove(clientId); // Clean up message buffer
 
     if (client != null) {
       client.close();
@@ -293,7 +320,8 @@ class ServerService {
       _socketInUse[clientId] = true;
 
       final messageJson = json.encode(message.toJson());
-      final data = utf8.encode(messageJson);
+      final messageWithDelimiter = messageJson + '\n'; // Add newline delimiter
+      final data = utf8.encode(messageWithDelimiter);
 
       print('Sending message to client $clientId: ${message.type}');
 
