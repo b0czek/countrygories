@@ -150,7 +150,9 @@ class _ServerDiscoveryWidgetState extends ConsumerState<ServerDiscoveryWidget> {
                     itemBuilder: (context, index) {
                       final server = servers[index];
                       final timeSinceLastSeen =
-                          DateTime.now().difference(server.lastSeen).inSeconds;
+                          DateTime.now()
+                              .difference(server.lastSeen)
+                              .inMilliseconds;
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
@@ -188,16 +190,16 @@ class _ServerDiscoveryWidgetState extends ConsumerState<ServerDiscoveryWidget> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                timeSinceLastSeen < 3
+                                timeSinceLastSeen < 150
                                     ? Icons.signal_cellular_4_bar
                                     : Icons.signal_cellular_alt,
                                 color:
-                                    timeSinceLastSeen < 3
+                                    timeSinceLastSeen < 150
                                         ? Colors.green
                                         : Colors.orange,
                               ),
                               Text(
-                                '${timeSinceLastSeen}s',
+                                '${timeSinceLastSeen}ms',
                                 style: const TextStyle(fontSize: 10),
                               ),
                             ],
