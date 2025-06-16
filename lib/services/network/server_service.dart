@@ -65,7 +65,7 @@ class ServerService {
           ipAddress: _localIpAddress!,
           port: _server!.port,
           hostName: _hostName,
-          playerCount: _players.length,
+          playerCount: _players.length + 1, // Include the host player
           maxPlayers: 8,
         );
         print('Server discovery started with IP: $_localIpAddress');
@@ -167,7 +167,6 @@ class ServerService {
         );
 
         await sendToClient(clientId, confirmationMessage);
-
         // Broadcast player joined event to all other clients
         await _broadcastPlayerJoined(clientId, player);
 
@@ -482,7 +481,7 @@ class ServerService {
             ipAddress: _localIpAddress!,
             port: _server!.port,
             hostName: _hostName,
-            playerCount: _players.length,
+            playerCount: _players.length + 1, // Include the host player
             maxPlayers: 8,
           );
 
