@@ -49,9 +49,14 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
         throw Exception('Server service not available');
       }
 
+      // Get the local IP address for advertising
+      final localIp = await ref.read(localIpProvider.future);
+      final localIpAddress = localIp != "N/A" ? localIp : null;
+
       await serverService.startServer(
         serverName: '${_playerNameController.text}\'s Game',
         hostName: _playerNameController.text,
+        localIpAddress: localIpAddress,
       );
       ref.read(serverActiveProvider.notifier).state = true;
 
@@ -97,84 +102,87 @@ class _HostGameScreenState extends ConsumerState<HostGameScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Hostuj grę')),
       body: Container(
-  constraints: const BoxConstraints.expand(),
-  decoration: BoxDecoration(
-    gradient: LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        Theme.of(context).colorScheme.surfaceContainerHighest,
-        Theme.of(context).colorScheme.surfaceContainerLowest,
-      ],
-    ),
-  ),
-  child: LayoutBuilder(
-    builder: (context, constraints) {
-      return Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Ustawienia gry',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _playerNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Twoja nazwa',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Proszę podać nazwę';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildGameSettingsSection(settings),
-                    const SizedBox(height: 24),
-                    if (_errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.bold,
+        constraints: const BoxConstraints.expand(),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+              Theme.of(context).colorScheme.surfaceContainerLowest,
+            ],
+          ),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Ustawienia gry',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _playerNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Twoja nazwa',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Proszę podać nazwę';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildGameSettingsSection(settings),
+                          const SizedBox(height: 24),
+                          if (_errorMessage != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Center(
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : CustomButton(
-                      text: 'Rozpocznij hosting',
-                      onPressed: _startServer,
-                      width: 250,
                     ),
-            ),
-          ),
-        ],
-      );
-    },
-  ),
-),
-
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Center(
+                    child:
+                        _isLoading
+                            ? const CircularProgressIndicator()
+                            : CustomButton(
+                              text: 'Rozpocznij hosting',
+                              onPressed: _startServer,
+                              width: 250,
+                            ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 

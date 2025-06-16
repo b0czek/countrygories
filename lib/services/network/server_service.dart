@@ -31,6 +31,7 @@ class ServerService {
   final ServerDiscoveryService _discoveryService = ServerDiscoveryService();
   String _serverName = 'Countrygories Game';
   String _hostName = 'Host';
+  String? _localIpAddress; // Store the local IP address for advertising
 
   Stream<Message> get onMessage => _messageController.stream;
   Stream<Player> get onPlayerConnected => _playerConnectedController.stream;
@@ -39,7 +40,11 @@ class ServerService {
 
   ServerService({required this.port});
 
-  Future<void> startServer({String? serverName, String? hostName}) async {
+  Future<void> startServer({
+    String? serverName,
+    String? hostName,
+    String? localIpAddress,
+  }) async {
     if (_server != null) return;
 
     try {
@@ -48,19 +53,27 @@ class ServerService {
 
       if (serverName != null) _serverName = serverName;
       if (hostName != null) _hostName = hostName;
+      if (localIpAddress != null) _localIpAddress = localIpAddress;
 
       _server!.listen(_handleClient);
       _startConnectionMonitoring();
 
-      // Start server discovery advertisement
-      await _discoveryService.startAdvertising(
-        serverName: _serverName,
-        ipAddress: _server!.address.address,
-        port: _server!.port,
-        hostName: _hostName,
-        playerCount: _players.length,
-        maxPlayers: 8,
-      );
+      // Start server discovery advertisement only if we have a valid local IP
+      if (_localIpAddress != null) {
+        await _discoveryService.startAdvertising(
+          serverName: _serverName,
+          ipAddress: _localIpAddress!,
+          port: _server!.port,
+          hostName: _hostName,
+          playerCount: _players.length,
+          maxPlayers: 8,
+        );
+        print('Server discovery started with IP: $_localIpAddress');
+      } else {
+        print(
+          'Warning: Server discovery not started - no valid local IP address available',
+        );
+      }
     } catch (e) {
       print('Error starting server: $e');
       rethrow;
@@ -462,19 +475,25 @@ class ServerService {
         // Stop current advertising
         await _discoveryService.stopAdvertising();
 
-        // Start advertising again with updated info
-        await _discoveryService.startAdvertising(
-          serverName: _serverName,
-          ipAddress: _server!.address.address,
-          port: _server!.port,
-          hostName: _hostName,
-          playerCount: _players.length,
-          maxPlayers: 8,
-        );
+        // Start advertising again with updated info only if we have a valid local IP
+        if (_localIpAddress != null) {
+          await _discoveryService.startAdvertising(
+            serverName: _serverName,
+            ipAddress: _localIpAddress!,
+            port: _server!.port,
+            hostName: _hostName,
+            playerCount: _players.length,
+            maxPlayers: 8,
+          );
 
-        print(
-          'Server discovery info restarted: $_serverName on ${_server!.address.address}:${_server!.port} with ${_players.length} players',
-        );
+          print(
+            'Server discovery info restarted: $_serverName on $_localIpAddress:${_server!.port} with ${_players.length} players',
+          );
+        } else {
+          print(
+            'Warning: Server discovery info not restarted - no valid local IP address available',
+          );
+        }
       } catch (e) {
         print('Error updating discovery info: $e');
       }
