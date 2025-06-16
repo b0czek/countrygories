@@ -118,7 +118,7 @@ run_flutter_instance() {
     esac
     
     # Wait a moment before starting the next instance
-    sleep 1
+    sleep 3
 }
 
 # Check available devices
