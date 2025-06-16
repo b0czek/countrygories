@@ -16,75 +16,72 @@ class HomeScreen extends ConsumerWidget {
     ref.watch(categoriesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppConfig.appName),centerTitle: true,),
-        body: Stack(
-          children: [
-            Container(
-              constraints: const BoxConstraints.expand(),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Theme.of(context).colorScheme.surfaceContainerHighest,
-                    Theme.of(context).colorScheme.surfaceContainerLowest,
-                  ],
-                ),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/logo.png',
-                      height: 240,
-                    ),
-                    const SizedBox(height: 32),
-                    const SizedBox(height: 40),
-                    CustomButton(
-                      text: 'Hostuj grę',
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const HostGameScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    CustomButton(
-                      text: 'Dołącz do gry',
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const JoinGameScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+      body: Stack(
+        children: [
+          Container(
+            constraints: const BoxConstraints.expand(),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+                  Theme.of(context).colorScheme.surfaceContainerLowest,
+                ],
               ),
             ),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.settings, size: 30),
-                color: Theme.of(context).colorScheme.onSurface, // dopasowany do motywu
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
-                    ),
-                  );
-                },
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset('assets/images/logo.png', height: 240),
+                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
+                  CustomButton(
+                    text: 'Hostuj grę',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const HostGameScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  CustomButton(
+                    text: 'Dołącz do gry',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const JoinGameScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
+            ),
           ),
-
-  ],
-),
-
+          Positioned(
+            top: 16,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.settings, size: 30),
+              color:
+                  Theme.of(
+                    context,
+                  ).colorScheme.onSurface, // dopasowany do motywu
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
