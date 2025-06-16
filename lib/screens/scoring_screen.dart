@@ -227,7 +227,8 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
     final isHost = ref.read(isHostProvider);
     if (!isHost) return;
 
-    if (game.currentRound! >= game.settings.numberOfRounds) {
+    final currentRound = game.currentRound ?? 1;
+    if (currentRound >= game.settings.numberOfRounds) {
       ref.read(gameProvider.notifier).endGame();
 
       final serverService = ref.read(serverProvider);
@@ -252,7 +253,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
       if (serverService != null) {
         final message = Message(
           type: MessageType.roundStarted,
-          payload: {'round': game.currentRound},
+          payload: {'round': game.currentRound ?? 1},
           senderId: game.host.id,
           timestamp: DateTime.now(),
         );
@@ -298,7 +299,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Punktacja - Runda ${game.currentRound}'),
+        title: Text('Punktacja - Runda ${game.currentRound ?? 1}'),
         automaticallyImplyLeading: false,
       ),
       body:
@@ -474,7 +475,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                               if (isHost)
                                 CustomButton(
                                   text:
-                                      game.currentRound! >=
+                                      (game.currentRound ?? 1) >=
                                               game.settings.numberOfRounds
                                           ? 'Zakończ grę'
                                           : 'Następna runda',
