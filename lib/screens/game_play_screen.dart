@@ -23,12 +23,21 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
   int _remainingTime = 0;
   bool _isSelectingLetter = true;
   bool _isSubmitting = false;
+  bool _isWaitingForOthers = false;
+  Set<String> _submittedPlayerIds = {};
 
   @override
   void initState() {
     super.initState();
     _setupNetworkListeners();
     _initializeControllers();
+
+    // Reset state when entering the screen
+    setState(() {
+      _isSubmitting = false;
+      _isWaitingForOthers = false;
+      _submittedPlayerIds.clear();
+    });
   }
 
   @override
@@ -54,11 +63,17 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
             );
 
             ref.read(gameProvider.notifier).submitAnswers(playerId, answers);
-            _timer?.cancel();
-            _submitAnswers();
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const ScoringScreen()),
-            );
+
+            // Track which player submitted
+            setState(() {
+              _submittedPlayerIds.add(playerId);
+            });
+
+            // Broadcast to all clients that this player submitted
+            _broadcastPlayerSubmitted(playerId);
+
+            // Check if all players have submitted
+            _checkAllPlayersSubmitted();
           }
         });
       }
@@ -71,15 +86,52 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
             if (message.type == MessageType.letterSelected) {
               setState(() {
                 _isSelectingLetter = false;
+                _isSubmitting = false;
+                _isWaitingForOthers = false;
+                _submittedPlayerIds.clear();
               });
 
               final letter = message.payload['letter'] as String;
               ref.read(gameProvider.notifier).syncLetterFromServer(letter);
 
               _startRoundTimer();
+            } else if (message.type == MessageType.playerSubmitted) {
+              // Update submission status from host
+              final submittedPlayerIds = List<String>.from(
+                message.payload['submittedPlayerIds'],
+              );
+              print('Client received playerSubmitted message!');
+              print('Received submittedPlayerIds: $submittedPlayerIds');
+              print(
+                'Current _submittedPlayerIds before update: $_submittedPlayerIds',
+              );
+              print('Current _isWaitingForOthers: $_isWaitingForOthers');
+
+              setState(() {
+                // Merge received submissions with current state
+                final receivedSubmissions = submittedPlayerIds.toSet();
+                _submittedPlayerIds.addAll(receivedSubmissions);
+
+                // Ensure current player is in the list if they're waiting
+                final currentPlayer = ref.read(currentPlayerProvider);
+                if (_isWaitingForOthers && currentPlayer != null) {
+                  _submittedPlayerIds.add(currentPlayer.id);
+                  print(
+                    'Added current player ${currentPlayer.id} to submitted list',
+                  );
+                }
+                print(
+                  'Final client submitted list after update: $_submittedPlayerIds',
+                );
+              });
             } else if (message.type == MessageType.roundEnded) {
               _timer?.cancel();
-              _submitAnswers();
+
+              // Reset waiting state before going to scoring
+              setState(() {
+                _isWaitingForOthers = false;
+                _isSubmitting = false;
+              });
 
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => const ScoringScreen()),
@@ -112,10 +164,15 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
           _remainingTime--;
         } else {
           _timer?.cancel();
-          _submitAnswers();
+
+          // Time is up - force submit if not already submitted
+          if (!_isSubmitting && !_isWaitingForOthers) {
+            _submitAnswers();
+          }
 
           final isHost = ref.read(isHostProvider);
           if (isHost) {
+            // Host: end round regardless of who submitted
             _endRound();
           }
         }
@@ -129,6 +186,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
 
     setState(() {
       _isSelectingLetter = false;
+      _isSubmitting = false;
+      _isWaitingForOthers = false;
+      _submittedPlayerIds.clear();
     });
 
     ref.read(gameProvider.notifier).startRound();
@@ -171,7 +231,16 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
 
     final isHost = ref.read(isHostProvider);
     if (isHost) {
-      // Host already got it in game state
+      // Host submitted, now wait for others or end if all submitted
+      setState(() {
+        _isWaitingForOthers = true;
+        _submittedPlayerIds.add(currentPlayer.id); // Add host to submitted list
+      });
+
+      // Broadcast that host has submitted
+      _broadcastPlayerSubmitted(currentPlayer.id);
+
+      _checkAllPlayersSubmitted();
     } else {
       // Send to server
       final clientService = ref.read(clientProvider);
@@ -185,6 +254,68 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
 
         clientService.sendMessage(message);
       }
+
+      // Client enters waiting state and adds themselves to submitted list
+      setState(() {
+        _isWaitingForOthers = true;
+        _submittedPlayerIds.add(currentPlayer.id); // Add themselves immediately
+      });
+
+      print(
+        'Client ${currentPlayer.id} submitted, waiting state: $_isWaitingForOthers',
+      );
+      print('Client submitted players: $_submittedPlayerIds');
+    }
+  }
+
+  void _broadcastPlayerSubmitted(String playerId) {
+    final game = ref.read(gameProvider);
+    if (game == null) return;
+
+    final isHost = ref.read(isHostProvider);
+    if (!isHost) return;
+
+    print('Host broadcasting player submitted: $playerId');
+    print('Host submitted players: $_submittedPlayerIds');
+
+    final serverService = ref.read(serverProvider);
+    if (serverService != null) {
+      final message = Message(
+        type: MessageType.playerSubmitted,
+        payload: {
+          'playerId': playerId,
+          'submittedPlayerIds': _submittedPlayerIds.toList(),
+        },
+        senderId: game.host.id,
+        timestamp: DateTime.now(),
+      );
+
+      serverService.broadcastMessage(message);
+    }
+  }
+
+  void _checkAllPlayersSubmitted() {
+    final game = ref.read(gameProvider);
+    if (game == null) return;
+
+    final isHost = ref.read(isHostProvider);
+    if (!isHost) return;
+
+    // Get all connected players (excluding disconnected ones)
+    final connectedPlayers = game.players.where((p) => p.isConnected).toList();
+    final allPlayerIds = connectedPlayers.map((p) => p.id).toSet();
+
+    print(
+      'Submitted players: ${_submittedPlayerIds.length}/${allPlayerIds.length}',
+    );
+    print('All players: $allPlayerIds');
+    print('Submitted: $_submittedPlayerIds');
+
+    if (_submittedPlayerIds.containsAll(allPlayerIds)) {
+      // All players have submitted, end the round
+      print('All players submitted, ending round');
+      _timer?.cancel();
+      _endRound();
     }
   }
 
@@ -269,6 +400,85 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
                 Center(
                   child: LetterWheel(onStop: isHost ? _selectLetter : null),
                 ),
+              ] else if (_isWaitingForOthers) ...[
+                const SizedBox(height: 40),
+                const Icon(
+                  Icons.hourglass_empty,
+                  size: 64,
+                  color: Colors.orange,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Czekam na pozostałych graczy...',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Czas pozostały: ${_remainingTime}s',
+                  style: const TextStyle(fontSize: 18, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Gracze którzy oddali odpowiedzi: ${_submittedPlayerIds.length}/${game.players.where((p) => p.isConnected).length}',
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                // Show list of players and their status
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: game.players.where((p) => p.isConnected).length,
+                    itemBuilder: (context, index) {
+                      final player =
+                          game.players
+                              .where((p) => p.isConnected)
+                              .toList()[index];
+                      final hasSubmitted = _submittedPlayerIds.contains(
+                        player.id,
+                      );
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          vertical: 4,
+                          horizontal: 16,
+                        ),
+                        child: ListTile(
+                          leading: Icon(
+                            hasSubmitted
+                                ? Icons.check_circle
+                                : Icons.hourglass_empty,
+                            color: hasSubmitted ? Colors.green : Colors.orange,
+                          ),
+                          title: Text(player.name),
+                          subtitle: Text(
+                            hasSubmitted ? 'Oddał odpowiedzi' : 'Czeka...',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (isHost)
+                  ElevatedButton(
+                    onPressed: () {
+                      _timer?.cancel();
+                      _endRound();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                    child: const Text(
+                      'Wymuś zakończenie rundy',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
               ] else ...[
                 const SizedBox(height: 16),
                 Text(
@@ -296,16 +506,7 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed:
-                      _isSubmitting
-                          ? null
-                          : () {
-                            _submitAnswers();
-                            if (isHost) {
-                              _timer?.cancel();
-                              _endRound();
-                            }
-                          },
+                  onPressed: _isSubmitting ? null : _submitAnswers,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,

@@ -168,17 +168,9 @@ class ServerService {
       } else if (message.type == MessageType.ping) {
         // Respond to ping with a pong
         _respondToPing(clientId);
-      }
-      else if (message.type == MessageType.submitAnswers) {
-        final roundEndedMessage = Message(
-          type: MessageType.roundEnded,
-          payload: {
-            'info': 'Runda zakończona przez submitAnswers',
-          },
-          senderId: 'server',
-          timestamp: DateTime.now(),
-        );
-        await broadcastMessage(roundEndedMessage);
+      } else if (message.type == MessageType.playerSubmitted) {
+        // Broadcast player submission status to all clients
+        await broadcastMessage(message);
       }
 
       _messageController.add(message);

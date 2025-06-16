@@ -10,6 +10,7 @@ enum MessageType {
   roundStarted,
   letterSelected,
   submitAnswers,
+  playerSubmitted,
   roundEnded,
   scoringResults,
   gameEnded,

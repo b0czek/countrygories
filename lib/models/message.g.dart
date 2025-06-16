@@ -29,6 +29,7 @@ const _$MessageTypeEnumMap = {
   MessageType.roundStarted: 'roundStarted',
   MessageType.letterSelected: 'letterSelected',
   MessageType.submitAnswers: 'submitAnswers',
+  MessageType.playerSubmitted: 'playerSubmitted',
   MessageType.roundEnded: 'roundEnded',
   MessageType.scoringResults: 'scoringResults',
   MessageType.gameEnded: 'gameEnded',
