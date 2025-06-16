@@ -13,6 +13,7 @@ enum MessageType {
   playerSubmitted,
   roundEnded,
   scoringResults,
+  scoreUpdate,
   gameEnded,
   playerReady,
   gameLobbyData,

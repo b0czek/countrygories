@@ -25,6 +25,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
   bool _isSubmitting = false;
   bool _isWaitingForOthers = false;
   Set<String> _submittedPlayerIds = {};
+  StreamSubscription? _serverMessageSubscription;
+  StreamSubscription? _clientMessageSubscription;
 
   @override
   void initState() {
@@ -43,6 +45,8 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _serverMessageSubscription?.cancel();
+    _clientMessageSubscription?.cancel();
     for (final controller in _controllers.values) {
       controller.dispose();
     }
@@ -55,7 +59,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
     if (isHost) {
       final serverService = ref.read(serverProvider);
       if (serverService != null) {
-        serverService.onMessage.listen((message) {
+        _serverMessageSubscription = serverService.onMessage.listen((message) {
+          if (!mounted) return; // Check if widget is still mounted
+
           if (message.type == MessageType.submitAnswers) {
             final playerId = message.senderId;
             final answers = Map<String, String>.from(
@@ -82,7 +88,11 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
       if (currentPlayer != null) {
         final clientService = ref.read(clientProvider);
         if (clientService != null) {
-          clientService.onMessage.listen((message) {
+          _clientMessageSubscription = clientService.onMessage.listen((
+            message,
+          ) {
+            if (!mounted) return; // Check if widget is still mounted
+
             if (message.type == MessageType.letterSelected) {
               setState(() {
                 _isSelectingLetter = false;
@@ -127,6 +137,9 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
             } else if (message.type == MessageType.roundEnded) {
               _timer?.cancel();
 
+              // Update client's game state to match host
+              ref.read(gameProvider.notifier).endRound();
+
               // Reset waiting state before going to scoring
               setState(() {
                 _isWaitingForOthers = false;
@@ -159,6 +172,11 @@ class _GamePlayScreenState extends ConsumerState<GamePlayScreen> {
     _remainingTime = game.settings.timePerRound;
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
       setState(() {
         if (_remainingTime > 0) {
           _remainingTime--;

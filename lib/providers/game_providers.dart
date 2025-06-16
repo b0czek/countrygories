@@ -204,4 +204,29 @@ class GameNotifier extends StateNotifier<Game?> {
     if (state == null) return;
     state = state!.copyWith(currentRound: roundNumber);
   }
+
+  void syncCompleteRoundFromServer(Map<String, dynamic> roundData) {
+    if (state == null) return;
+
+    final round = GameRound.fromJson(roundData);
+
+    // Check if this round already exists
+    final existingRoundIndex = state!.rounds.indexWhere(
+      (r) => r.id == round.id,
+    );
+
+    if (existingRoundIndex != -1) {
+      // Update existing round
+      final updatedRounds = List<GameRound>.from(state!.rounds);
+      updatedRounds[existingRoundIndex] = round;
+      state = state!.copyWith(rounds: updatedRounds);
+    } else {
+      // Add new round
+      state = state!.copyWith(
+        rounds: [...state!.rounds, round],
+        currentLetter: round.letter,
+        currentRound: round.roundNumber,
+      );
+    }
+  }
 }
