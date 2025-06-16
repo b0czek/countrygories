@@ -63,7 +63,7 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           Positioned(
-            top: 16,
+            top: 48,
             right: 16,
             child: IconButton(
               icon: const Icon(Icons.settings, size: 30),
