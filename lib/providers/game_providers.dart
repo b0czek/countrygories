@@ -27,6 +27,16 @@ class GameNotifier extends StateNotifier<Game?> {
   void joinGame(Player player) {
     if (state == null) return;
 
+    // Check if player already exists to prevent duplicates
+    final playerExists = state!.players.any((p) => p.id == player.id);
+    if (playerExists) {
+      print(
+        'Warning: Player ${player.name} (${player.id}) already exists in game, skipping addition',
+      );
+      return;
+    }
+
+    print('Adding player ${player.name} (${player.id}) to game');
     state = state!.copyWith(players: [...state!.players, player]);
   }
 
@@ -40,6 +50,15 @@ class GameNotifier extends StateNotifier<Game?> {
 
   void updatePlayerStatus(String playerId, {bool? isReady, bool? isConnected}) {
     if (state == null) return;
+
+    // Find if player exists first
+    final playerExists = state!.players.any((p) => p.id == playerId);
+    if (!playerExists) {
+      print(
+        'Warning: Trying to update status of non-existent player: $playerId',
+      );
+      return;
+    }
 
     state = state!.copyWith(
       players: [
@@ -139,10 +158,11 @@ class GameNotifier extends StateNotifier<Game?> {
       int totalRoundScore = 0;
       if (roundScore != null) {
         for (final score in roundScore.values) {
-          totalRoundScore += score; // Include all scores (positive, negative, or zero)
+          totalRoundScore +=
+              score; // Include all scores (positive, negative, or zero)
         }
       }
-      
+
       // Always record the round score, even if it's 0
       playerScores[currentRound.id] = totalRoundScore;
 

@@ -56,10 +56,14 @@ class LobbyService {
     // Player disconnected
     _subscriptions.add(
       serverService.onPlayerDisconnected.listen((playerId) {
+        print('Host processing player disconnection: $playerId');
         _ref.read(connectedPlayersProvider.notifier).removePlayer(playerId);
-        _ref
-            .read(gameProvider.notifier)
-            .updatePlayerStatus(playerId, isConnected: false);
+
+        // For the host, actually remove the player from the game instead of just marking as disconnected
+        // This prevents display issues and potential duplications
+        _ref.read(gameProvider.notifier).removePlayer(playerId);
+
+        print('Player $playerId removed from game and connected players list');
       }),
     );
 
@@ -159,10 +163,19 @@ class LobbyService {
     } else if (message.payload.containsKey('playerLeft')) {
       final playerLeftData = message.payload['playerLeft'];
       final leftPlayer = Player.fromJson(playerLeftData['player']);
-      _ref
-          .read(gameProvider.notifier)
-          .updatePlayerStatus(leftPlayer.id, isConnected: false);
-      print('Player left: ${leftPlayer.name}');
+
+      // Check if player still exists in game before marking as disconnected
+      final game = _ref.read(gameProvider);
+      if (game != null && game.players.any((p) => p.id == leftPlayer.id)) {
+        _ref
+            .read(gameProvider.notifier)
+            .updatePlayerStatus(leftPlayer.id, isConnected: false);
+        print('Player marked as disconnected: ${leftPlayer.name}');
+      } else {
+        print(
+          'Player ${leftPlayer.name} not found in game, skipping disconnection update',
+        );
+      }
     }
   }
 
@@ -238,7 +251,7 @@ class LobbyService {
     }
 
     // Attempt to reconnect
-    _attemptReconnection(clientService);
+    // _attemptReconnection(clientService);
   }
 
   void _onConnectionRestored() {

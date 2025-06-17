@@ -233,6 +233,12 @@ class ServerService {
   }
 
   Future<void> _disconnectClient(String clientId) async {
+    // Check if client is already disconnected to prevent duplicate processing
+    if (!_connectedClients.containsKey(clientId) && !_players.containsKey(clientId)) {
+      print('Client $clientId already disconnected, skipping');
+      return;
+    }
+
     final client = _connectedClients.remove(clientId);
     final player = _players.remove(clientId);
     _lastClientPing.remove(clientId);
@@ -244,10 +250,11 @@ class ServerService {
     }
 
     if (player != null) {
+      print('Disconnecting player: ${player.name} (ID: ${player.id})');
       _playerDisconnectedController.add(player.id);
 
       // Broadcast player left notification to all remaining clients
-      _broadcastPlayerLeft(clientId, player);
+      await _broadcastPlayerLeft(player.id, player); // Use player.id instead of clientId
 
       // Update server discovery info
       await _updateDiscoveryInfo();
@@ -276,7 +283,9 @@ class ServerService {
       final clientId = entry.key;
       final lastPing = entry.value;
 
-      if (now.difference(lastPing) > const Duration(seconds: 20)) {
+      // Only check clients that are still connected
+      if (_connectedClients.containsKey(clientId) && 
+          now.difference(lastPing) > const Duration(seconds: 20)) {
         print(
           'Client $clientId timed out (no ping received in ${now.difference(lastPing).inSeconds} seconds)',
         );
@@ -454,7 +463,7 @@ class ServerService {
   }
 
   Future<void> _broadcastPlayerLeft(
-    String leftClientId,
+    String playerId,
     Player leftPlayer,
   ) async {
     try {
@@ -463,7 +472,7 @@ class ServerService {
         type: MessageType.gameLobbyData,
         payload: {
           'playerLeft': {
-            'playerId': leftClientId,
+            'playerId': playerId, // Use consistent player ID
             'player': leftPlayer.toJson(),
           },
         },
@@ -481,7 +490,7 @@ class ServerService {
       }
 
       print(
-        'Player left message broadcasted to ${_connectedClients.length} remaining clients',
+        'Player left message broadcasted to ${_connectedClients.length} remaining clients for player: ${leftPlayer.name}',
       );
     } catch (e) {
       print('Error broadcasting player left message: $e');
