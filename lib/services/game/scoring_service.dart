@@ -17,19 +17,6 @@ class ScoringService {
     final categoryAnswers = <String, Map<String, List<String>>>{};
 
     for (final playerId in allAnswers.keys) {
-      final playerAnswers = allAnswers[playerId]!;
-
-      for (final category in playerAnswers.keys) {
-        final answer = playerAnswers[category]!;
-
-        categoryAnswers.putIfAbsent(category, () => {});
-        categoryAnswers[category]!.putIfAbsent(answer, () => []);
-        categoryAnswers[category]![answer]!.add(playerId);
-      }
-    }
-
-    // Calculate points for each player
-    for (final playerId in allAnswers.keys) {
       result[playerId] = {};
       final playerAnswers = allAnswers[playerId]!;
 
@@ -41,33 +28,43 @@ class ScoringService {
           continue;
         }
 
-        // Check if the answer starts with the correct letter
         if (!answer.toUpperCase().startsWith(letter.toUpperCase())) {
           result[playerId]![category] = 0;
           continue;
         }
 
-        //if (mode == ScoringMode.automatic) {
-          // Check if the answer exists in the database
-          final isValid = await databaseService.verifyAnswer(
-            category,
-            letter,
-            answer,
-          );
+        final answerResult = await databaseService.verifyAnswer(
+          category,
+          letter,
+          answer,
+        );
 
-          if (!isValid) {
-            result[playerId]![category] = 0;
-            continue;
-          }
 
-          // Check if the answer is unique
-          final isUnique = categoryAnswers[category]![answer]!.length == 1;
+        final isValid = answerResult.item1;
+        final resultAnswer = answerResult.item2;
 
+        if (!isValid) {
+          print("LOOL NOT VALID!");
+          result[playerId]![category] = 0;
+          continue;
+        }
+
+        categoryAnswers.putIfAbsent(category, () => {});
+        categoryAnswers[category]!.putIfAbsent(resultAnswer, () => []);
+        categoryAnswers[category]![resultAnswer]!.add(playerId);
+      }
+    }
+
+    for (var cat in categoryAnswers.entries) {
+      final category = cat.key;
+      final answerMap = cat.value;
+      for (var ans in answerMap.entries) {
+        final answer = ans.key;
+        final playerList = ans.value;
+        final isUnique = playerList.length == 1;
+        for (var playerId in playerList) {
           result[playerId]![category] = isUnique ? 10 : 5;
-        //} else {
-          // In manual mode, points will be assigned later
-        //  result[playerId]![category] = -1;
-       // }
+        }
       }
     }
 

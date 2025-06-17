@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:string_similarity/string_similarity.dart';
+import 'package:tuple/tuple.dart';
 
 
 class IsarDatabaseService {
@@ -199,13 +200,13 @@ class IsarDatabaseService {
     return entries.map((e) => e.answer).toList();
   }
 
-  Future<bool> verifyAnswer(
+  Future<Tuple2<bool, String>> verifyAnswer(
     String categoryName,
     String letter,
     String answer,
   ) async {
     if (answer.isEmpty || answer[0] != letter) {
-      return false;
+      return Tuple2(false, answer.toLowerCase());
     }
     final isar = await db;
     final possibleAnswersList = 
@@ -216,7 +217,7 @@ class IsarDatabaseService {
             .findAll()
             .then((entries) => entries.map((entry) => entry.answer).toList());
     if (possibleAnswersList.contains(answer.toLowerCase())) {
-      return true;
+      return Tuple2(true, answer.toLowerCase());
     }
     final matched = normalizePolishLetters(answer)
                       .toLowerCase()
@@ -224,7 +225,12 @@ class IsarDatabaseService {
                       .ratings
                       .reduce((a, b) => (a.rating ?? 0.0) > (b.rating ?? 0.0) ? a : b);
     print("Best match: ${matched.target} with rating: ${matched.rating}");
-    return (matched.rating ?? 0.0) >= AppConfig.minAnswerLevensteinMatchValue;
+    bool isFoundAnswer = (matched.rating ?? 0.0) >= AppConfig.minAnswerLevensteinMatchValue;
+    String foundAnswer = answer;
+    if (isFoundAnswer) {
+      foundAnswer = matched.target!;
+    }
+    return Tuple2(isFoundAnswer, foundAnswer.toLowerCase());
   }
 
   String normalizePolishLetters(String word) {

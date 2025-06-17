@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:countrygories/services/database/isar_database.dart';
 import 'package:countrygories/models/category.dart';
 import 'package:countrygories/models/answer_entry.dart';
+import 'package:tuple/tuple.dart';
 
 final databaseServiceProvider = Provider<IsarDatabaseService>((ref) {
   return IsarDatabaseService();
@@ -14,7 +15,7 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
 });
 
 final answerVerificationProvider =
-    Provider.family<Future<bool>, Map<String, String>>((ref, params) {
+    Provider.family<Future<Tuple2<bool, String>>, Map<String, String>>((ref, params) {
       final databaseService = ref.watch(databaseServiceProvider);
       return databaseService.verifyAnswer(
         params['category']!,
