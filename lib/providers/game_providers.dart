@@ -136,17 +136,15 @@ class GameNotifier extends StateNotifier<Game?> {
       final playerScores = Map<String, int>.from(player.scores);
       final roundScore = scores[player.id];
 
+      int totalRoundScore = 0;
       if (roundScore != null) {
-        int totalRoundScore = 0;
-
         for (final score in roundScore.values) {
-          if (score > 0) {
-            totalRoundScore += score;
-          }
+          totalRoundScore += score; // Include all scores (positive, negative, or zero)
         }
-
-        playerScores[currentRound.id] = totalRoundScore;
       }
+      
+      // Always record the round score, even if it's 0
+      playerScores[currentRound.id] = totalRoundScore;
 
       updatedPlayers.add(player.copyWith(scores: playerScores));
     }
