@@ -42,11 +42,6 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       if (clientService != null) {
         _clientMessageSubscription = clientService.onMessage.listen((message) {
           if (message.type == MessageType.finalScoreboard) {
-            //final game = Game.fromJson(message.payload['game']);
-
-            // Replace the game state and trigger UI refresh
-            //ref.read(gameProvider.notifier).updateGameState(game);
-            //setState(() {});
             final playersData = message.payload['players'];
             final players =
                 playersData.map<Player>((p) => Player.fromJson(p)).toList();
@@ -65,12 +60,15 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     final isHost = ref.read(isHostProvider);
     if (!isHost) return;
 
+    // Delay to ensure all players have setup their listeners
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+
     final serverService = ref.read(serverProvider);
 
     if (serverService != null) {
       final message = Message(
         type: MessageType.finalScoreboard,
-        //payload: {'game': game.toJson()},
         payload: {'players': game.players.map((p) => p.toJson()).toList()},
         senderId: game.host.id,
         timestamp: DateTime.now(),
