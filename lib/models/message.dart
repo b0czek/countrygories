@@ -15,6 +15,7 @@ enum MessageType {
   scoringResults,
   scoreUpdate,
   gameEnded,
+  finalScoreboard,
   playerReady,
   gameLobbyData,
   error,

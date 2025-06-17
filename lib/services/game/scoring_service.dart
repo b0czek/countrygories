@@ -44,7 +44,6 @@ class ScoringService {
         final resultAnswer = answerResult.item2;
 
         if (!isValid) {
-          print("LOOL NOT VALID!");
           result[playerId]![category] = 0;
           continue;
         }

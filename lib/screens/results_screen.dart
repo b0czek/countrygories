@@ -1,16 +1,87 @@
+import 'dart:async';
+import 'package:countrygories/models/message.dart';
+import 'package:countrygories/models/player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:countrygories/models/player.dart';
 import 'package:countrygories/providers/game_providers.dart';
 import 'package:countrygories/providers/network_providers.dart';
 import 'package:countrygories/screens/home_screen.dart';
 import 'package:countrygories/widgets/common/custom_button.dart';
 
-class ResultsScreen extends ConsumerWidget {
+class ResultsScreen extends ConsumerStatefulWidget {
   const ResultsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends ConsumerState<ResultsScreen> {
+  StreamSubscription? _clientMessageSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupNetworkListeners();
+    _sendFinalScoreboard();
+  }
+
+  @override
+  void dispose() {
+    _clientMessageSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _setupNetworkListeners() {
+    final isHost = ref.read(isHostProvider);
+
+    if (!mounted) return;
+
+    if (isHost) {
+    } else {
+      final clientService = ref.read(clientProvider);
+      if (clientService != null) {
+        _clientMessageSubscription = clientService.onMessage.listen((message) {
+          if (message.type == MessageType.finalScoreboard) {
+            //final game = Game.fromJson(message.payload['game']);
+
+            // Replace the game state and trigger UI refresh
+            //ref.read(gameProvider.notifier).updateGameState(game);
+            //setState(() {});
+            final playersData = message.payload['players'];
+            final players =
+                playersData.map<Player>((p) => Player.fromJson(p)).toList();
+            ref.read(gameProvider.notifier).syncPlayersFromServer(players);
+          }
+        });
+      }
+    }
+  }
+
+  void _sendFinalScoreboard() async {
+    if (!mounted) return;
+
+    final game = ref.read(gameProvider);
+    if (game == null) return;
+    final isHost = ref.read(isHostProvider);
+    if (!isHost) return;
+
+    final serverService = ref.read(serverProvider);
+
+    if (serverService != null) {
+      final message = Message(
+        type: MessageType.finalScoreboard,
+        //payload: {'game': game.toJson()},
+        payload: {'players': game.players.map((p) => p.toJson()).toList()},
+        senderId: game.host.id,
+        timestamp: DateTime.now(),
+      );
+
+      await serverService.broadcastMessage(message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final game = ref.watch(gameProvider);
     final isHost = ref.watch(isHostProvider);
 

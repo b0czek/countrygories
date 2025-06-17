@@ -229,4 +229,10 @@ class GameNotifier extends StateNotifier<Game?> {
       );
     }
   }
+
+  void syncPlayersFromServer(List<Player> updatedPlayers) {
+    if (state == null) return;
+
+    state = state!.copyWith(players: updatedPlayers);
+  }
 }

@@ -34,6 +34,7 @@ const _$MessageTypeEnumMap = {
   MessageType.scoringResults: 'scoringResults',
   MessageType.scoreUpdate: 'scoreUpdate',
   MessageType.gameEnded: 'gameEnded',
+  MessageType.finalScoreboard: 'finalScoreboard',
   MessageType.playerReady: 'playerReady',
   MessageType.gameLobbyData: 'gameLobbyData',
   MessageType.error: 'error',
