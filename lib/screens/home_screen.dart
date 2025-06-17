@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:countrygories/providers/database_providers.dart';
 import 'package:countrygories/screens/host_game_screen.dart';
@@ -18,6 +19,7 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, size: 30),
