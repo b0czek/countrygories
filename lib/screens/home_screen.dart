@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:countrygories/config/app_config.dart';
 import 'package:countrygories/providers/database_providers.dart';
 import 'package:countrygories/screens/host_game_screen.dart';
 import 'package:countrygories/screens/join_game_screen.dart';
